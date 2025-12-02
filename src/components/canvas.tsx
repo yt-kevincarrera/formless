@@ -16,6 +16,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Card } from "@/components/ui/card";
 import { useFormBuilderStore } from "@/store/formBuilderStore";
 import type { FormComponent } from "@/types/form";
+import { FormComponentRenderer } from "@/components/form-component-renderer";
 import { useState } from "react";
 
 interface SortableComponentProps {
@@ -53,10 +54,7 @@ function SortableComponent({
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      onClick={() => onSelect(component.id)}
-      className={`p-4 rounded-lg border-2 transition-all cursor-move ${
+      className={`p-4 rounded-lg border-2 transition-all ${
         isDragging
           ? "opacity-50 scale-95"
           : isSelected
@@ -64,14 +62,24 @@ function SortableComponent({
           : "border-border bg-card hover:border-primary/50"
       }`}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <div className="font-medium text-sm text-foreground">
-            {component.label}
+      <div className="space-y-2">
+        {/* Drag handle area */}
+        <div
+          {...attributes}
+          {...listeners}
+          className="flex items-center justify-between cursor-move p-2 -m-2 rounded hover:bg-accent/50"
+        >
+          <div className="flex-1">
+            <div className="text-xs text-muted-foreground">
+              {component.type} • {component.name}
+            </div>
           </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            {component.type} • {component.name}
-          </div>
+          <div className="text-xs text-muted-foreground">⋮⋮</div>
+        </div>
+
+        {/* Actual form component preview */}
+        <div onClick={() => onSelect(component.id)} className="cursor-pointer">
+          <FormComponentRenderer component={component} />
         </div>
       </div>
     </div>
