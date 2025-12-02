@@ -3,9 +3,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useFormBuilderStore } from "@/store/formBuilderStore";
 import type { FormComponent, Option } from "@/types/form";
 import { Trash2, Plus, X } from "lucide-react";
+import { useState } from "react";
 
 export function PropertiesPanel() {
   const selectedComponentId = useFormBuilderStore(
@@ -14,6 +26,7 @@ export function PropertiesPanel() {
   const components = useFormBuilderStore((state) => state.components);
   const updateComponent = useFormBuilderStore((state) => state.updateComponent);
   const removeComponent = useFormBuilderStore((state) => state.removeComponent);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const selectedComponent = components.find(
     (c) => c.id === selectedComponentId
@@ -37,13 +50,8 @@ export function PropertiesPanel() {
   };
 
   const handleDelete = () => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete "${selectedComponent.label}"?`
-      )
-    ) {
-      removeComponent(selectedComponent.id);
-    }
+    removeComponent(selectedComponent.id);
+    setIsDeleteDialogOpen(false);
   };
 
   return (
@@ -52,15 +60,32 @@ export function PropertiesPanel() {
         <h2 className="text-lg font-semibold text-sidebar-foreground">
           Properties
         </h2>
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={handleDelete}
-          className="h-8"
+        <AlertDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
         >
-          <Trash2 className="h-4 w-4 mr-1" />
-          Delete
-        </Button>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="sm" className="h-8">
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Component</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{selectedComponent.label}"?
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <div className="space-y-6">
