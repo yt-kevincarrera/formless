@@ -3,6 +3,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useFormBuilderStore } from "@/store/formBuilderStore";
 import { ExportDialog } from "@/components/export-dialog";
+import { ImportDialog } from "@/components/import-dialog";
 
 export function Header() {
   const theme = useFormBuilderStore((state) => state.theme);
@@ -20,6 +21,7 @@ export function Header() {
           <p className="text-sm text-muted-foreground">Visual Form Builder</p>
         </div>
         <div className="flex items-center gap-4">
+          <ImportDialog />
           <ExportDialog />
           <div className="flex items-center gap-3">
             <Sun className="h-4 w-4 text-muted-foreground" />
