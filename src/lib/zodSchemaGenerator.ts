@@ -1,170 +1,567 @@
 import { z } from "zod";
-import type { FormComponent } from "@/types/form";
+import type { FormComponent } from "../types/form";
 
 /**
- * Generate a Zod schema from form components for validation
+ * Generate Zod schema object from form components
+ * This function creates an actual Zod schema that can be used for validation
  */
-export function generateZodSchema(components: FormComponent[]) {
-  const schemaFields: Record<string, z.ZodTypeAny> = {};
-
-  for (const component of components) {
-    let fieldSchema: z.ZodTypeAny;
-
-    // Base schema based on component type
-    switch (component.type) {
-      case "input":
-      case "textarea":
-        fieldSchema = z.string();
-
-        // Apply string validations
-        if (component.validation.minLength !== undefined) {
-          fieldSchema = (fieldSchema as z.ZodString).min(
-            component.validation.minLength,
-            component.validation.customMessage ||
-              `Minimum length is ${component.validation.minLength}`
-          );
-        }
-
-        if (component.validation.maxLength !== undefined) {
-          fieldSchema = (fieldSchema as z.ZodString).max(
-            component.validation.maxLength,
-            component.validation.customMessage ||
-              `Maximum length is ${component.validation.maxLength}`
-          );
-        }
-
-        if (component.validation.pattern) {
-          try {
-            const regex = new RegExp(component.validation.pattern);
-            fieldSchema = (fieldSchema as z.ZodString).regex(
-              regex,
-              component.validation.customMessage || "Invalid format"
-            );
-          } catch (e) {
-            console.warn(`Invalid regex pattern for ${component.name}:`, e);
-          }
-        }
-        break;
-
-      case "select":
-        if (component.options && component.options.length > 0) {
-          const values = component.options.map((opt) => opt.value) as [
-            string,
-            ...string[]
-          ];
-          fieldSchema = z.enum(values);
-        } else {
-          fieldSchema = z.string();
-        }
-        break;
-
-      case "checkbox":
-      case "switch":
-        fieldSchema = z.boolean();
-        break;
-
-      case "radio":
-        if (component.options && component.options.length > 0) {
-          const values = component.options.map((opt) => opt.value) as [
-            string,
-            ...string[]
-          ];
-          fieldSchema = z.enum(values);
-        } else {
-          fieldSchema = z.string();
-        }
-        break;
-
-      case "slider":
-        fieldSchema = z.number();
-
-        if (
-          component.validation.min !== undefined ||
-          component.min !== undefined
-        ) {
-          const minValue = component.validation.min ?? component.min ?? 0;
-          fieldSchema = (fieldSchema as z.ZodNumber).min(
-            minValue,
-            component.validation.customMessage || `Minimum value is ${minValue}`
-          );
-        }
-
-        if (
-          component.validation.max !== undefined ||
-          component.max !== undefined
-        ) {
-          const maxValue = component.validation.max ?? component.max ?? 100;
-          fieldSchema = (fieldSchema as z.ZodNumber).max(
-            maxValue,
-            component.validation.customMessage || `Maximum value is ${maxValue}`
-          );
-        }
-        break;
-
-      case "date":
-        fieldSchema = z.string();
-        break;
-
-      case "file":
-        // For file inputs, we'll validate the file object
-        fieldSchema = z.any();
-        break;
-
-      default:
-        fieldSchema = z.any();
-    }
-
-    // Apply required/optional
-    if (component.validation.required) {
-      // For strings, also check for empty strings
-      if (component.type === "input" || component.type === "textarea") {
-        fieldSchema = (fieldSchema as z.ZodString).min(
-          1,
-          "This field is required"
-        );
-      }
-    } else {
-      fieldSchema = fieldSchema.optional();
-    }
-
-    schemaFields[component.name] = fieldSchema;
+export function generateZodSchema(
+  components: FormComponent[]
+): z.ZodObject<any> {
+  if (components.length === 0) {
+    return z.object({});
   }
 
-  return z.object(schemaFields);
+  const schemaShape: Record<string, z.ZodTypeAny> = {};
+
+  for (const component of components) {
+    schemaShape[component.name] = generateFieldSchema(component);
+  }
+
+  return z.object(schemaShape);
 }
 
 /**
- * Generate default values from form components
+ * Generate Zod schema code string from form components
+ * This function creates a complete Zod schema string with imports and validation rules
  */
-export function generateDefaultValues(components: FormComponent[]) {
-  const defaultValues: Record<string, any> = {};
+export function generateZodSchemaCode(components: FormComponent[]): string {
+  if (components.length === 0) {
+    return `import { z } from "zod";
+
+export const formSchema = z.object({});
+
+export type FormData = z.infer<typeof formSchema>;
+`;
+  }
+
+  const schemaFields: string[] = [];
+
+  for (const component of components) {
+    const fieldSchemaCode = generateFieldSchemaCode(component);
+    schemaFields.push(`  ${component.name}: ${fieldSchemaCode}`);
+  }
+
+  return `import { z } from "zod";
+
+export const formSchema = z.object({
+${schemaFields.join(",\n")}
+});
+
+export type FormData = z.infer<typeof formSchema>;
+`;
+}
+
+/**
+ * Generate Zod schema for a single field based on component type and validation rules
+ */
+function generateFieldSchema(component: FormComponent): z.ZodTypeAny {
+  // Map component type to Zod type
+  switch (component.type) {
+    case "input":
+    case "textarea":
+      return generateStringSchema(component);
+    case "select":
+      return generateSelectSchema(component);
+    case "radio":
+      return generateRadioSchema(component);
+    case "checkbox":
+    case "switch":
+      return generateBooleanSchema(component);
+    case "slider":
+      return generateNumberSchema(component);
+    case "date":
+      return generateDateSchema(component);
+    case "file":
+      return generateFileSchema(component);
+    default:
+      return z.string();
+  }
+}
+
+/**
+ * Generate Zod schema code string for a single field
+ */
+function generateFieldSchemaCode(component: FormComponent): string {
+  // Map component type to Zod type
+  switch (component.type) {
+    case "input":
+    case "textarea":
+      return generateStringSchemaCode(component);
+    case "select":
+      return generateSelectSchemaCode(component);
+    case "radio":
+      return generateRadioSchemaCode(component);
+    case "checkbox":
+    case "switch":
+      return generateBooleanSchemaCode(component);
+    case "slider":
+      return generateNumberSchemaCode(component);
+    case "date":
+      return generateDateSchemaCode(component);
+    case "file":
+      return generateFileSchemaCode(component);
+    default:
+      return "z.string()";
+  }
+}
+
+/**
+ * Generate string schema with validation rules (runtime)
+ */
+function generateStringSchema(component: FormComponent): z.ZodTypeAny {
+  let schema: z.ZodTypeAny = z.string();
+  const { validation } = component;
+
+  // If required is explicitly true, add min(1) to reject empty strings
+  if (validation.required === true) {
+    schema = (schema as z.ZodString).min(1, {
+      message: "This field is required",
+    });
+  }
+
+  // Apply validation rules
+  if (validation.minLength !== undefined) {
+    const message = validation.customMessage || undefined;
+    schema = (schema as z.ZodString).min(
+      validation.minLength,
+      message ? { message } : undefined
+    );
+  }
+
+  if (validation.maxLength !== undefined) {
+    const message = validation.customMessage || undefined;
+    schema = (schema as z.ZodString).max(
+      validation.maxLength,
+      message ? { message } : undefined
+    );
+  }
+
+  if (validation.pattern) {
+    const message = validation.customMessage || undefined;
+    schema = (schema as z.ZodString).regex(
+      new RegExp(validation.pattern),
+      message ? { message } : undefined
+    );
+  }
+
+  // Handle optional (when required is not set or explicitly false)
+  if (validation.required === undefined || validation.required === false) {
+    schema = schema.optional();
+  }
+
+  return schema;
+}
+
+/**
+ * Generate string schema code with validation rules
+ */
+function generateStringSchemaCode(component: FormComponent): string {
+  const parts: string[] = ["z.string()"];
+  const { validation } = component;
+
+  // If required is explicitly true, add min(1) to reject empty strings
+  if (validation.required === true) {
+    parts.push(`min(1, { message: "This field is required" })`);
+  }
+
+  // Apply validation rules
+  if (validation.minLength !== undefined) {
+    const message = validation.customMessage
+      ? `, { message: "${validation.customMessage}" }`
+      : "";
+    parts.push(`min(${validation.minLength}${message})`);
+  }
+
+  if (validation.maxLength !== undefined) {
+    const message = validation.customMessage
+      ? `, { message: "${validation.customMessage}" }`
+      : "";
+    parts.push(`max(${validation.maxLength}${message})`);
+  }
+
+  if (validation.pattern) {
+    const message = validation.customMessage
+      ? `, { message: "${validation.customMessage}" }`
+      : "";
+    // Escape backslashes for regex pattern
+    const escapedPattern = validation.pattern.replace(/\\/g, "\\\\");
+    parts.push(`regex(/${escapedPattern}/${message})`);
+  }
+
+  // Handle optional (when required is not set or explicitly false)
+  if (validation.required === undefined || validation.required === false) {
+    parts.push("optional()");
+  }
+
+  return parts.join(".");
+}
+
+/**
+ * Generate select schema with enum values (runtime)
+ */
+function generateSelectSchema(component: FormComponent): z.ZodTypeAny {
+  if (!component.options || component.options.length === 0) {
+    return z.string();
+  }
+
+  const values = component.options.map((opt) => opt.value) as [
+    string,
+    ...string[]
+  ];
+  let schema: z.ZodTypeAny = component.validation.customMessage
+    ? z.enum(values, { message: component.validation.customMessage })
+    : z.enum(values);
+
+  // Handle optional (when required is not set or explicitly false)
+  if (
+    component.validation.required === undefined ||
+    component.validation.required === false
+  ) {
+    schema = schema.optional();
+  }
+
+  return schema;
+}
+
+/**
+ * Generate select schema code with enum values
+ */
+function generateSelectSchemaCode(component: FormComponent): string {
+  if (!component.options || component.options.length === 0) {
+    return "z.string()";
+  }
+
+  const values = component.options.map((opt) => `"${opt.value}"`).join(", ");
+  const parts: string[] = [`z.enum([${values}])`];
+
+  const message = component.validation.customMessage
+    ? `, { message: "${component.validation.customMessage}" }`
+    : "";
+
+  if (message) {
+    parts[0] = `z.enum([${values}]${message})`;
+  }
+
+  // Handle optional (when required is not set or explicitly false)
+  if (
+    component.validation.required === undefined ||
+    component.validation.required === false
+  ) {
+    parts.push("optional()");
+  }
+
+  return parts.join(".");
+}
+
+/**
+ * Generate radio schema with enum values (runtime)
+ */
+function generateRadioSchema(component: FormComponent): z.ZodTypeAny {
+  if (!component.options || component.options.length === 0) {
+    return z.string();
+  }
+
+  const values = component.options.map((opt) => opt.value) as [
+    string,
+    ...string[]
+  ];
+  let schema: z.ZodTypeAny = component.validation.customMessage
+    ? z.enum(values, { message: component.validation.customMessage })
+    : z.enum(values);
+
+  // Handle optional (when required is not set or explicitly false)
+  if (
+    component.validation.required === undefined ||
+    component.validation.required === false
+  ) {
+    schema = schema.optional();
+  }
+
+  return schema;
+}
+
+/**
+ * Generate radio schema code with enum values
+ */
+function generateRadioSchemaCode(component: FormComponent): string {
+  if (!component.options || component.options.length === 0) {
+    return "z.string()";
+  }
+
+  const values = component.options.map((opt) => `"${opt.value}"`).join(", ");
+  const parts: string[] = [`z.enum([${values}])`];
+
+  const message = component.validation.customMessage
+    ? `, { message: "${component.validation.customMessage}" }`
+    : "";
+
+  if (message) {
+    parts[0] = `z.enum([${values}]${message})`;
+  }
+
+  // Handle optional (when required is not set or explicitly false)
+  if (
+    component.validation.required === undefined ||
+    component.validation.required === false
+  ) {
+    parts.push("optional()");
+  }
+
+  return parts.join(".");
+}
+
+/**
+ * Generate boolean schema (runtime)
+ */
+function generateBooleanSchema(component: FormComponent): z.ZodTypeAny {
+  let schema: z.ZodTypeAny = z.boolean();
+
+  // Handle optional (when required is not set or explicitly false)
+  if (
+    component.validation.required === undefined ||
+    component.validation.required === false
+  ) {
+    schema = schema.optional();
+  }
+
+  return schema;
+}
+
+/**
+ * Generate boolean schema code
+ */
+function generateBooleanSchemaCode(component: FormComponent): string {
+  const parts: string[] = ["z.boolean()"];
+
+  // Handle optional (when required is not set or explicitly false)
+  if (
+    component.validation.required === undefined ||
+    component.validation.required === false
+  ) {
+    parts.push("optional()");
+  }
+
+  return parts.join(".");
+}
+
+/**
+ * Generate number schema with validation rules (runtime)
+ */
+function generateNumberSchema(component: FormComponent): z.ZodTypeAny {
+  let schema: z.ZodTypeAny = z.number();
+  const { validation } = component;
+
+  // Apply min/max from validation or component properties
+  const minValue =
+    validation.min !== undefined ? validation.min : component.min;
+  const maxValue =
+    validation.max !== undefined ? validation.max : component.max;
+
+  if (minValue !== undefined) {
+    const message = validation.customMessage || undefined;
+    schema = (schema as z.ZodNumber).min(
+      minValue,
+      message ? { message } : undefined
+    );
+  }
+
+  if (maxValue !== undefined) {
+    const message = validation.customMessage || undefined;
+    schema = (schema as z.ZodNumber).max(
+      maxValue,
+      message ? { message } : undefined
+    );
+  }
+
+  // Handle optional (when required is not set or explicitly false)
+  if (validation.required === undefined || validation.required === false) {
+    schema = schema.optional();
+  }
+
+  return schema;
+}
+
+/**
+ * Generate number schema code with validation rules
+ */
+function generateNumberSchemaCode(component: FormComponent): string {
+  const parts: string[] = ["z.number()"];
+  const { validation } = component;
+
+  // Apply min/max from validation or component properties
+  const minValue =
+    validation.min !== undefined ? validation.min : component.min;
+  const maxValue =
+    validation.max !== undefined ? validation.max : component.max;
+
+  if (minValue !== undefined) {
+    const message = validation.customMessage
+      ? `, { message: "${validation.customMessage}" }`
+      : "";
+    parts.push(`min(${minValue}${message})`);
+  }
+
+  if (maxValue !== undefined) {
+    const message = validation.customMessage
+      ? `, { message: "${validation.customMessage}" }`
+      : "";
+    parts.push(`max(${maxValue}${message})`);
+  }
+
+  // Handle optional (when required is not set or explicitly false)
+  if (validation.required === undefined || validation.required === false) {
+    parts.push("optional()");
+  }
+
+  return parts.join(".");
+}
+
+/**
+ * Generate date schema (runtime)
+ */
+function generateDateSchema(component: FormComponent): z.ZodTypeAny {
+  let schema: z.ZodTypeAny = z.date();
+
+  // Handle optional (when required is not set or explicitly false)
+  if (
+    component.validation.required === undefined ||
+    component.validation.required === false
+  ) {
+    schema = schema.optional();
+  }
+
+  return schema;
+}
+
+/**
+ * Generate date schema code
+ */
+function generateDateSchemaCode(component: FormComponent): string {
+  const parts: string[] = ["z.date()"];
+
+  // Handle optional (when required is not set or explicitly false)
+  if (
+    component.validation.required === undefined ||
+    component.validation.required === false
+  ) {
+    parts.push("optional()");
+  }
+
+  return parts.join(".");
+}
+
+/**
+ * Generate file schema with custom validation (runtime)
+ */
+function generateFileSchema(component: FormComponent): z.ZodTypeAny {
+  let schema: z.ZodTypeAny = z.instanceof(File);
+
+  // File validation is complex, so we use a custom refinement
+  if (component.accept && component.accept !== "*") {
+    const acceptTypes = component.accept.split(",").map((t) => t.trim());
+    schema = (schema as z.ZodType<File>).refine(
+      (file) => acceptTypes.some((type) => file.type === type),
+      { message: `Invalid file type. Accepted: ${component.accept}` }
+    );
+  }
+
+  // Add file size validation
+  if (component.maxSize) {
+    const maxSizeMB = (component.maxSize / (1024 * 1024)).toFixed(2);
+    schema = (schema as z.ZodType<File>).refine(
+      (file) => file.size <= component.maxSize!,
+      { message: `File size must be less than ${maxSizeMB}MB` }
+    );
+  }
+
+  // Handle optional (when required is not set or explicitly false)
+  if (
+    component.validation.required === undefined ||
+    component.validation.required === false
+  ) {
+    schema = schema.optional();
+  }
+
+  return schema;
+}
+
+/**
+ * Generate file schema code with custom validation
+ */
+function generateFileSchemaCode(component: FormComponent): string {
+  const parts: string[] = [];
+
+  // File validation is complex, so we use a custom refinement
+  if (component.accept && component.accept !== "*") {
+    const acceptTypes = component.accept.split(",").map((t) => t.trim());
+    const typeCheck = acceptTypes
+      .map((t) => `file.type === "${t}"`)
+      .join(" || ");
+
+    parts.push(
+      `z.instanceof(File).refine((file) => ${typeCheck}, { message: "Invalid file type. Accepted: ${component.accept}" })`
+    );
+  } else {
+    parts.push("z.instanceof(File)");
+  }
+
+  // Add file size validation
+  if (component.maxSize) {
+    const maxSizeMB = (component.maxSize / (1024 * 1024)).toFixed(2);
+    parts.push(
+      `refine((file) => file.size <= ${component.maxSize}, { message: "File size must be less than ${maxSizeMB}MB" })`
+    );
+  }
+
+  // Handle optional (when required is not set or explicitly false)
+  if (
+    component.validation.required === undefined ||
+    component.validation.required === false
+  ) {
+    parts.push("optional()");
+  }
+
+  return parts.join(".");
+}
+
+/**
+ * Generate default values for form components
+ * Used for React Hook Form initialization
+ */
+export function generateDefaultValues(
+  components: FormComponent[]
+): Record<string, any> {
+  const defaults: Record<string, any> = {};
 
   for (const component of components) {
     if (component.defaultValue !== undefined) {
-      defaultValues[component.name] = component.defaultValue;
+      defaults[component.name] = component.defaultValue;
     } else {
-      // Set sensible defaults based on type
+      // Provide sensible defaults based on type
       switch (component.type) {
         case "input":
         case "textarea":
         case "select":
         case "radio":
-        case "date":
-          defaultValues[component.name] = "";
+          defaults[component.name] = "";
           break;
         case "checkbox":
         case "switch":
-          defaultValues[component.name] = false;
+          defaults[component.name] = false;
           break;
         case "slider":
-          defaultValues[component.name] = component.min ?? 0;
+          defaults[component.name] = component.min || 0;
+          break;
+        case "date":
+          defaults[component.name] = undefined;
           break;
         case "file":
-          defaultValues[component.name] = undefined;
+          defaults[component.name] = undefined;
           break;
       }
     }
   }
 
-  return defaultValues;
+  return defaults;
 }
