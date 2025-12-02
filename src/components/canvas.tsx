@@ -17,18 +17,28 @@ import { Card } from "@/components/ui/card";
 import { useFormBuilderStore } from "@/store/formBuilderStore";
 import type { FormComponent } from "@/types/form";
 import { FormComponentRenderer } from "@/components/form-component-renderer";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  generateZodSchema,
+  generateDefaultValues,
+} from "@/lib/zodSchemaGenerator";
 
 interface SortableComponentProps {
   component: FormComponent;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  control: any;
+  errors: any;
 }
 
 function SortableComponent({
   component,
   isSelected,
   onSelect,
+  control,
+  errors,
 }: SortableComponentProps) {
   const {
     attributes,
@@ -77,9 +87,13 @@ function SortableComponent({
           <div className="text-xs text-muted-foreground">⋮⋮</div>
         </div>
 
-        {/* Actual form component preview */}
+        {/* Actual form component preview with validation */}
         <div onClick={() => onSelect(component.id)} className="cursor-pointer">
-          <FormComponentRenderer component={component} />
+          <FormComponentRenderer
+            component={component}
+            control={control}
+            errors={errors}
+          />
         </div>
       </div>
     </div>
@@ -98,6 +112,34 @@ export function Canvas() {
   const selectComponent = useFormBuilderStore((state) => state.selectComponent);
 
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Generate Zod schema and default values from components
+  const schema = useMemo(() => {
+    if (components.length === 0) {
+      return null;
+    }
+    return generateZodSchema(components);
+  }, [components]);
+
+  const defaultValues = useMemo(() => {
+    return generateDefaultValues(components);
+  }, [components]);
+
+  // Set up React Hook Form with Zod validation
+  const {
+    control,
+    formState: { errors },
+    reset,
+  } = useForm({
+    resolver: schema ? zodResolver(schema) : undefined,
+    defaultValues,
+    mode: "onChange", // Validate on change for real-time feedback
+  });
+
+  // Reset form when components change
+  useMemo(() => {
+    reset(defaultValues);
+  }, [defaultValues, reset]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -194,6 +236,8 @@ export function Canvas() {
                       component={component}
                       isSelected={component.id === selectedComponentId}
                       onSelect={selectComponent}
+                      control={control}
+                      errors={errors}
                     />
                   ))}
                 </div>

@@ -13,29 +13,255 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { FormComponent } from "@/types/form";
-import { useState } from "react";
+import { Controller, type Control, type FieldErrors } from "react-hook-form";
 
 interface FormComponentRendererProps {
   component: FormComponent;
   onClick?: () => void;
+  control?: Control<any>;
+  errors?: FieldErrors;
 }
 
 export function FormComponentRenderer({
   component,
   onClick,
+  control,
+  errors,
 }: FormComponentRendererProps) {
-  // Local state for interactive preview
-  const [value, setValue] = useState<any>(component.defaultValue ?? "");
+  const error = errors?.[component.name];
+  const errorMessage = error?.message as string | undefined;
 
+  // If no control is provided, render a static preview (for drag overlay, etc.)
+  if (!control) {
+    return <StaticComponentPreview component={component} onClick={onClick} />;
+  }
+
+  const renderComponent = () => {
+    switch (component.type) {
+      case "input":
+        return (
+          <Controller
+            name={component.name}
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                placeholder={component.placeholder}
+                className={error ? "border-destructive" : ""}
+              />
+            )}
+          />
+        );
+
+      case "textarea":
+        return (
+          <Controller
+            name={component.name}
+            control={control}
+            render={({ field }) => (
+              <Textarea
+                {...field}
+                placeholder={component.placeholder}
+                className={error ? "border-destructive" : ""}
+              />
+            )}
+          />
+        );
+
+      case "select":
+        return (
+          <Controller
+            name={component.name}
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger className={error ? "border-destructive" : ""}>
+                  <SelectValue
+                    placeholder={component.placeholder || "Select an option"}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {component.options?.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        );
+
+      case "checkbox":
+        return (
+          <Controller
+            name={component.name}
+            control={control}
+            render={({ field }) => (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id={component.id}
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+                <Label
+                  htmlFor={component.id}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {component.label}
+                </Label>
+              </div>
+            )}
+          />
+        );
+
+      case "radio":
+        return (
+          <Controller
+            name={component.name}
+            control={control}
+            render={({ field }) => (
+              <RadioGroup value={field.value} onValueChange={field.onChange}>
+                {component.options?.map((option) => (
+                  <div
+                    key={option.value}
+                    className="flex items-center space-x-2"
+                  >
+                    <RadioGroupItem
+                      value={option.value}
+                      id={`${component.id}-${option.value}`}
+                    />
+                    <Label htmlFor={`${component.id}-${option.value}`}>
+                      {option.label}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            )}
+          />
+        );
+
+      case "switch":
+        return (
+          <Controller
+            name={component.name}
+            control={control}
+            render={({ field }) => (
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id={component.id}
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+                <Label htmlFor={component.id}>{component.label}</Label>
+              </div>
+            )}
+          />
+        );
+
+      case "slider":
+        return (
+          <Controller
+            name={component.name}
+            control={control}
+            render={({ field }) => (
+              <div className="space-y-2">
+                <Slider
+                  value={[field.value]}
+                  onValueChange={(vals) => field.onChange(vals[0])}
+                  min={component.min ?? 0}
+                  max={component.max ?? 100}
+                  step={component.step ?? 1}
+                />
+                <div className="text-sm text-muted-foreground text-center">
+                  Value: {field.value}
+                </div>
+              </div>
+            )}
+          />
+        );
+
+      case "date":
+        return (
+          <Controller
+            name={component.name}
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="date"
+                className={error ? "border-destructive" : ""}
+              />
+            )}
+          />
+        );
+
+      case "file":
+        return (
+          <Controller
+            name={component.name}
+            control={control}
+            render={({ field: { onChange, value, ...field } }) => (
+              <Input
+                {...field}
+                type="file"
+                accept={component.accept}
+                onChange={(e) => onChange(e.target.files?.[0])}
+                className={error ? "border-destructive" : ""}
+              />
+            )}
+          />
+        );
+
+      default:
+        return (
+          <div className="text-muted-foreground text-sm">
+            Unknown component type: {component.type}
+          </div>
+        );
+    }
+  };
+
+  // For checkbox and switch, the label is rendered as part of the component
+  const showLabel =
+    component.type !== "checkbox" && component.type !== "switch";
+
+  return (
+    <div onClick={onClick} className="space-y-2">
+      {showLabel && (
+        <Label htmlFor={component.id}>
+          {component.label}
+          {component.validation.required && (
+            <span className="text-destructive ml-1">*</span>
+          )}
+        </Label>
+      )}
+      {renderComponent()}
+      {errorMessage && (
+        <p className="text-sm text-destructive">{errorMessage}</p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Static preview component for when React Hook Form is not available
+ */
+function StaticComponentPreview({
+  component,
+  onClick,
+}: {
+  component: FormComponent;
+  onClick?: () => void;
+}) {
   const renderComponent = () => {
     switch (component.type) {
       case "input":
         return (
           <Input
             placeholder={component.placeholder}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            required={component.validation.required}
+            defaultValue={component.defaultValue}
+            disabled
           />
         );
 
@@ -43,27 +269,19 @@ export function FormComponentRenderer({
         return (
           <Textarea
             placeholder={component.placeholder}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            required={component.validation.required}
+            defaultValue={component.defaultValue}
+            disabled
           />
         );
 
       case "select":
         return (
-          <Select value={value} onValueChange={setValue}>
+          <Select disabled>
             <SelectTrigger>
               <SelectValue
                 placeholder={component.placeholder || "Select an option"}
               />
             </SelectTrigger>
-            <SelectContent>
-              {component.options?.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
           </Select>
         );
 
@@ -72,21 +290,16 @@ export function FormComponentRenderer({
           <div className="flex items-center space-x-2">
             <Checkbox
               id={component.id}
-              checked={value}
-              onCheckedChange={setValue}
+              defaultChecked={component.defaultValue}
+              disabled
             />
-            <Label
-              htmlFor={component.id}
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              {component.label}
-            </Label>
+            <Label htmlFor={component.id}>{component.label}</Label>
           </div>
         );
 
       case "radio":
         return (
-          <RadioGroup value={value} onValueChange={setValue}>
+          <RadioGroup disabled>
             {component.options?.map((option) => (
               <div key={option.value} className="flex items-center space-x-2">
                 <RadioGroupItem
@@ -106,8 +319,8 @@ export function FormComponentRenderer({
           <div className="flex items-center space-x-2">
             <Switch
               id={component.id}
-              checked={value}
-              onCheckedChange={setValue}
+              defaultChecked={component.defaultValue}
+              disabled
             />
             <Label htmlFor={component.id}>{component.label}</Label>
           </div>
@@ -117,37 +330,25 @@ export function FormComponentRenderer({
         return (
           <div className="space-y-2">
             <Slider
-              value={[value]}
-              onValueChange={(vals) => setValue(vals[0])}
+              value={[component.defaultValue ?? component.min ?? 0]}
               min={component.min ?? 0}
               max={component.max ?? 100}
               step={component.step ?? 1}
+              disabled
             />
             <div className="text-sm text-muted-foreground text-center">
-              Value: {value}
+              Value: {component.defaultValue ?? component.min ?? 0}
             </div>
           </div>
         );
 
       case "date":
         return (
-          <Input
-            type="date"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            required={component.validation.required}
-          />
+          <Input type="date" defaultValue={component.defaultValue} disabled />
         );
 
       case "file":
-        return (
-          <Input
-            type="file"
-            accept={component.accept}
-            onChange={(e) => setValue(e.target.files?.[0]?.name || "")}
-            required={component.validation.required}
-          />
-        );
+        return <Input type="file" accept={component.accept} disabled />;
 
       default:
         return (
@@ -158,7 +359,6 @@ export function FormComponentRenderer({
     }
   };
 
-  // For checkbox and switch, the label is rendered as part of the component
   const showLabel =
     component.type !== "checkbox" && component.type !== "switch";
 
