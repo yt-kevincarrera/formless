@@ -307,7 +307,7 @@ function generateSliderJSX(component: FormComponent): string {
     max={${max}}
     step={${step}}
     defaultValue={[${defaultValue}]}
-    className="[&_[role=slider]]:bg-primary dark:[&_[role=slider]]:bg-primary"
+    className="**:[[role=slider]]:bg-primary dark:**:[[role=slider]]:bg-primary"
   />
   <div className="flex justify-between text-xs text-muted-foreground dark:text-muted-foreground">
     <span>${min}</span>
