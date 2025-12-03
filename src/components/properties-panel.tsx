@@ -48,10 +48,7 @@ export function PropertiesPanel() {
 
   if (!selectedComponent) {
     return (
-      <div className="h-full overflow-y-auto p-4 bg-sidebar border-l border-sidebar-border">
-        <h2 className="text-lg font-semibold mb-4 text-sidebar-foreground">
-          Properties
-        </h2>
+      <div className="h-full overflow-y-auto p-4 bg-sidebar">
         <Card className="p-4">
           <p className="text-sm text-muted-foreground">No component selected</p>
         </Card>
@@ -77,11 +74,8 @@ export function PropertiesPanel() {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-4 bg-sidebar border-l border-sidebar-border">
+    <div className="h-full overflow-y-auto p-4 bg-sidebar">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-sidebar-foreground">
-          Properties
-        </h2>
         <AlertDialog
           open={isDeleteDialogOpen}
           onOpenChange={setIsDeleteDialogOpen}

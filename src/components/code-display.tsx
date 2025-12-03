@@ -82,19 +82,10 @@ export function CodeDisplay() {
   );
 
   return (
-    <div className="h-full flex flex-col bg-background border-l border-border">
-      <div className="p-4 border-b border-border">
-        <h2 className="text-lg font-semibold text-foreground">
-          Generated Code
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Production-ready code for your form
-        </p>
-      </div>
-
+    <div className="h-full flex flex-col bg-background">
       <Tabs
         defaultValue="component"
-        className="flex-1 flex flex-col overflow-hidden"
+        className="h-full flex flex-col overflow-hidden"
       >
         <div className="px-4 pt-2">
           <TabsList className="w-full grid grid-cols-3">
