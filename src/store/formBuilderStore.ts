@@ -32,6 +32,78 @@ const generateId = (): string => {
 };
 
 /**
+ * Validate component name is a valid JavaScript identifier
+ */
+const isValidComponentName = (name: string): boolean => {
+  // Must start with letter, underscore, or dollar sign
+  // Can contain letters, numbers, underscores, dollar signs
+  const validNameRegex = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
+
+  // Reserved JavaScript keywords
+  const reservedKeywords = [
+    "break",
+    "case",
+    "catch",
+    "class",
+    "const",
+    "continue",
+    "debugger",
+    "default",
+    "delete",
+    "do",
+    "else",
+    "export",
+    "extends",
+    "finally",
+    "for",
+    "function",
+    "if",
+    "import",
+    "in",
+    "instanceof",
+    "new",
+    "return",
+    "super",
+    "switch",
+    "this",
+    "throw",
+    "try",
+    "typeof",
+    "var",
+    "void",
+    "while",
+    "with",
+    "yield",
+    "let",
+    "static",
+    "enum",
+    "await",
+    "implements",
+    "interface",
+    "package",
+    "private",
+    "protected",
+    "public",
+  ];
+
+  return (
+    validNameRegex.test(name) && !reservedKeywords.includes(name.toLowerCase())
+  );
+};
+
+/**
+ * Validate regex pattern
+ */
+const isValidRegex = (pattern: string): boolean => {
+  try {
+    new RegExp(pattern);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Get default properties for a component type
  */
 const getDefaultComponent = (
@@ -137,6 +209,60 @@ export const useFormBuilderStore = create<FormBuilderStore>()(
       },
 
       updateComponent: (id: string, updates: Partial<FormComponent>) => {
+        // Validate component name if being updated
+        if (updates.name !== undefined) {
+          if (!updates.name.trim()) {
+            throw new Error("Component name cannot be empty");
+          }
+
+          if (!isValidComponentName(updates.name)) {
+            throw new Error(
+              "Invalid component name. Must be a valid JavaScript identifier (start with letter/underscore, no spaces or special characters, not a reserved keyword)"
+            );
+          }
+
+          // Check for duplicate names
+          const state = get();
+          const isDuplicate = state.components.some(
+            (c) => c.id !== id && c.name === updates.name
+          );
+
+          if (isDuplicate) {
+            throw new Error(
+              `Component name "${updates.name}" is already in use. Please choose a unique name.`
+            );
+          }
+        }
+
+        // Validate regex pattern if being updated
+        if (
+          updates.validation?.pattern !== undefined &&
+          updates.validation.pattern !== ""
+        ) {
+          if (!isValidRegex(updates.validation.pattern)) {
+            throw new Error(
+              "Invalid regex pattern. Please check your regular expression syntax."
+            );
+          }
+        }
+
+        // Validate option values for select/radio components
+        if (updates.options !== undefined && updates.options.length > 0) {
+          const values = updates.options.map((opt) => opt.value);
+          const uniqueValues = new Set(values);
+
+          if (values.length !== uniqueValues.size) {
+            throw new Error(
+              "Duplicate option values detected. Each option must have a unique value."
+            );
+          }
+
+          // Check for empty values
+          if (values.some((v) => !v.trim())) {
+            throw new Error("Option values cannot be empty.");
+          }
+        }
+
         set((state) => ({
           components: state.components.map((c) =>
             c.id === id ? { ...c, ...updates } : c

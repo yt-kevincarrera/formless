@@ -17,6 +17,8 @@ import { generateRHFSetup } from "@/lib/rhfSetupGenerator";
 
 export function ExportDialog() {
   const [open, setOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isCopying, setIsCopying] = useState<string | null>(null);
   const components = useFormBuilderStore((state) => state.components);
   const exportSchema = useFormBuilderStore((state) => state.exportSchema);
 
@@ -53,11 +55,14 @@ export function ExportDialog() {
    */
   const handleCopyComponent = async () => {
     try {
+      setIsCopying("component");
       await navigator.clipboard.writeText(componentCode);
       toast.success("Component code copied to clipboard");
     } catch (error) {
       console.error("Failed to copy component code:", error);
       toast.error("Failed to copy component code");
+    } finally {
+      setIsCopying(null);
     }
   };
 
@@ -66,11 +71,14 @@ export function ExportDialog() {
    */
   const handleCopySchema = async () => {
     try {
+      setIsCopying("schema");
       await navigator.clipboard.writeText(schemaCode);
       toast.success("Schema code copied to clipboard");
     } catch (error) {
       console.error("Failed to copy schema code:", error);
       toast.error("Failed to copy schema code");
+    } finally {
+      setIsCopying(null);
     }
   };
 
@@ -79,11 +87,14 @@ export function ExportDialog() {
    */
   const handleCopySetup = async () => {
     try {
+      setIsCopying("setup");
       await navigator.clipboard.writeText(setupCode);
       toast.success("Setup code copied to clipboard");
     } catch (error) {
       console.error("Failed to copy setup code:", error);
       toast.error("Failed to copy setup code");
+    } finally {
+      setIsCopying(null);
     }
   };
 
@@ -92,6 +103,7 @@ export function ExportDialog() {
    */
   const handleDownloadBundle = async () => {
     try {
+      setIsExporting(true);
       // Dynamic import of JSZip
       const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
@@ -128,6 +140,8 @@ export function ExportDialog() {
     } catch (error) {
       console.error("Failed to download project bundle:", error);
       toast.error("Failed to download project bundle");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -162,9 +176,10 @@ export function ExportDialog() {
             variant="outline"
             className="w-full justify-start"
             onClick={handleCopyComponent}
+            disabled={isCopying === "component"}
           >
             <Copy className="h-4 w-4 mr-2" />
-            Copy Component Code
+            {isCopying === "component" ? "Copying..." : "Copy Component Code"}
           </Button>
 
           {/* Copy Schema Code */}
@@ -172,9 +187,10 @@ export function ExportDialog() {
             variant="outline"
             className="w-full justify-start"
             onClick={handleCopySchema}
+            disabled={isCopying === "schema"}
           >
             <Copy className="h-4 w-4 mr-2" />
-            Copy Schema Code
+            {isCopying === "schema" ? "Copying..." : "Copy Schema Code"}
           </Button>
 
           {/* Copy Setup Code */}
@@ -182,9 +198,10 @@ export function ExportDialog() {
             variant="outline"
             className="w-full justify-start"
             onClick={handleCopySetup}
+            disabled={isCopying === "setup"}
           >
             <Copy className="h-4 w-4 mr-2" />
-            Copy Setup Code
+            {isCopying === "setup" ? "Copying..." : "Copy Setup Code"}
           </Button>
 
           {/* Download Project Bundle */}
@@ -192,9 +209,10 @@ export function ExportDialog() {
             variant="default"
             className="w-full justify-start"
             onClick={handleDownloadBundle}
+            disabled={isExporting}
           >
             <Package className="h-4 w-4 mr-2" />
-            Download Project Bundle
+            {isExporting ? "Preparing bundle..." : "Download Project Bundle"}
           </Button>
         </div>
       </DialogContent>

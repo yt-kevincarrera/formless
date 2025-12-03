@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { useFormBuilderStore } from "@/store/formBuilderStore";
 import { ExportDialog } from "@/components/export-dialog";
 import { ImportDialog } from "@/components/import-dialog";
+import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog";
 
 export function Header() {
   const theme = useFormBuilderStore((state) => state.theme);
@@ -23,6 +24,7 @@ export function Header() {
         <div className="flex items-center gap-4">
           <ImportDialog />
           <ExportDialog />
+          <KeyboardShortcutsDialog />
           <div className="flex items-center gap-3">
             <Sun className="h-4 w-4 text-muted-foreground" />
             <Switch

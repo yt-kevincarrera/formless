@@ -16,6 +16,7 @@ import { useFormBuilderStore } from "@/store/formBuilderStore";
 export function ImportDialog() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importSchema = useFormBuilderStore((state) => state.importSchema);
 
@@ -30,6 +31,7 @@ export function ImportDialog() {
 
     // Clear previous errors
     setError(null);
+    setIsImporting(true);
 
     try {
       // Read file content
@@ -119,6 +121,8 @@ export function ImportDialog() {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -181,9 +185,10 @@ export function ImportDialog() {
             variant="outline"
             className="w-full justify-start"
             onClick={handleUploadClick}
+            disabled={isImporting}
           >
             <Upload className="h-4 w-4 mr-2" />
-            Choose JSON File
+            {isImporting ? "Importing..." : "Choose JSON File"}
           </Button>
 
           {/* Instructions */}

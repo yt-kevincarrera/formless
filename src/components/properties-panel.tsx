@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,14 +20,31 @@ import {
   selectSelectedComponent,
 } from "@/store/formBuilderStore";
 import type { FormComponent, Option } from "@/types/form";
-import { Trash2, Plus, X } from "lucide-react";
-import { useState } from "react";
+import { Trash2, Plus, X, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 export function PropertiesPanel() {
   const selectedComponent = useFormBuilderStore(selectSelectedComponent);
   const updateComponent = useFormBuilderStore((state) => state.updateComponent);
   const removeComponent = useFormBuilderStore((state) => state.removeComponent);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Local state for inputs to allow typing before validation
+  const [localName, setLocalName] = useState(selectedComponent?.name || "");
+  const [localPattern, setLocalPattern] = useState(
+    selectedComponent?.validation.pattern || ""
+  );
+
+  // Update local state when selected component changes
+  useEffect(() => {
+    if (selectedComponent) {
+      setLocalName(selectedComponent.name);
+      setLocalPattern(selectedComponent.validation.pattern || "");
+      setValidationError(null);
+    }
+  }, [selectedComponent]);
 
   if (!selectedComponent) {
     return (
@@ -42,7 +60,15 @@ export function PropertiesPanel() {
   }
 
   const handleUpdate = (updates: Partial<FormComponent>) => {
-    updateComponent(selectedComponent.id, updates);
+    try {
+      setValidationError(null);
+      updateComponent(selectedComponent.id, updates);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update component";
+      setValidationError(errorMessage);
+      toast.error(errorMessage);
+    }
   };
 
   const handleDelete = () => {
@@ -85,6 +111,14 @@ export function PropertiesPanel() {
       </div>
 
       <div className="space-y-6">
+        {/* Validation Error Alert */}
+        {validationError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{validationError}</AlertDescription>
+          </Alert>
+        )}
+
         {/* Common Properties */}
         <Card className="p-4 space-y-4">
           <div className="space-y-2">
@@ -101,10 +135,25 @@ export function PropertiesPanel() {
             <Label htmlFor="name">Name</Label>
             <Input
               id="name"
-              value={selectedComponent.name}
-              onChange={(e) => handleUpdate({ name: e.target.value })}
+              value={localName}
+              onChange={(e) => {
+                setLocalName(e.target.value);
+                // Debounced update will happen via useEffect
+              }}
+              onBlur={() => {
+                if (localName !== selectedComponent.name) {
+                  handleUpdate({ name: localName });
+                }
+              }}
               placeholder="field_name"
+              className={
+                validationError?.includes("name") ? "border-destructive" : ""
+              }
             />
+            <p className="text-xs text-muted-foreground">
+              Must be a valid JavaScript identifier (no spaces, special
+              characters, or reserved keywords)
+            </p>
           </div>
 
           {/* Placeholder for input/textarea */}
@@ -223,17 +272,33 @@ export function PropertiesPanel() {
                 <Label htmlFor="pattern">Pattern (Regex)</Label>
                 <Input
                   id="pattern"
-                  value={selectedComponent.validation.pattern || ""}
-                  onChange={(e) =>
-                    handleUpdate({
-                      validation: {
-                        ...selectedComponent.validation,
-                        pattern: e.target.value || undefined,
-                      },
-                    })
-                  }
+                  value={localPattern}
+                  onChange={(e) => {
+                    setLocalPattern(e.target.value);
+                  }}
+                  onBlur={() => {
+                    if (
+                      localPattern !==
+                      (selectedComponent.validation.pattern || "")
+                    ) {
+                      handleUpdate({
+                        validation: {
+                          ...selectedComponent.validation,
+                          pattern: localPattern || undefined,
+                        },
+                      });
+                    }
+                  }}
                   placeholder="^[a-zA-Z]+$"
+                  className={
+                    validationError?.includes("regex")
+                      ? "border-destructive"
+                      : ""
+                  }
                 />
+                <p className="text-xs text-muted-foreground">
+                  Enter a valid regular expression pattern
+                </p>
               </div>
             </>
           )}
