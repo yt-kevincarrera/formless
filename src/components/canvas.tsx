@@ -261,7 +261,7 @@ export function Canvas() {
                   <div
                     className={`gap-3 ${
                       settings.layout === "two-column"
-                        ? "grid grid-cols-2"
+                        ? "grid grid-cols-1 md:grid-cols-2"
                         : "space-y-3"
                     }`}
                     role="list"

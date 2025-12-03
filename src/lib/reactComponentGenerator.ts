@@ -133,8 +133,8 @@ function generateComponentBody(
     )}\n        </div>`;
   }
 
-  // Wrap fields in layout container if two-column
-  const layoutClass = layout === "two-column" ? "grid grid-cols-2 gap-3" : "";
+  const layoutClass =
+    layout === "two-column" ? "grid grid-cols-1 md:grid-cols-2 gap-3" : "";
   const fieldsContainer = layoutClass
     ? `<div className="${layoutClass}">\n${indentLines(
         fields,
