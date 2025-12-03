@@ -2,7 +2,7 @@ import type { FormComponent } from "../types/form";
 
 /**
  * Generate a complete React component code string from form components
- * This function creates production-ready React code using shadcn/ui components
+ * This function creates production-ready React code using shadcn/ui Form components with Controller
  */
 export function generateReactComponent(components: FormComponent[]): string {
   if (components.length === 0) {
@@ -10,7 +10,8 @@ export function generateReactComponent(components: FormComponent[]): string {
   }
 
   const imports = generateImports(components);
-  const componentBody = generateComponentBody(components);
+  const schemaName = "formSchema";
+  const componentBody = generateComponentBody(components, schemaName);
 
   return `${imports}
 
@@ -37,8 +38,14 @@ function generateEmptyComponent(): string {
 function generateImports(components: FormComponent[]): string {
   const imports = new Set<string>();
 
-  // Always include these base imports
-  imports.add('import { Label } from "@/components/ui/label";');
+  // Always include these base imports for React Hook Form and shadcn Form
+  imports.add('import { useForm } from "react-hook-form";');
+  imports.add('import { zodResolver } from "@hookform/resolvers/zod";');
+  imports.add('import * as z from "zod";');
+  imports.add('import { Button } from "@/components/ui/button";');
+  imports.add(
+    'import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";'
+  );
 
   // Determine which shadcn/ui components are needed
   for (const component of components) {
@@ -61,6 +68,7 @@ function generateImports(components: FormComponent[]): string {
         imports.add(
           'import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";'
         );
+        imports.add('import { Label } from "@/components/ui/label";');
         break;
       case "switch":
         imports.add('import { Switch } from "@/components/ui/switch";');
@@ -73,7 +81,6 @@ function generateImports(components: FormComponent[]): string {
         imports.add(
           'import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";'
         );
-        imports.add('import { Button } from "@/components/ui/button";');
         imports.add('import { CalendarIcon } from "lucide-react";');
         imports.add('import { format } from "date-fns";');
         imports.add('import { cn } from "@/lib/utils";');
@@ -88,288 +95,420 @@ function generateImports(components: FormComponent[]): string {
 }
 
 /**
- * Generate the main component body with all form fields
+ * Generate the main component body with all form fields using React Hook Form
  */
-function generateComponentBody(components: FormComponent[]): string {
+function generateComponentBody(
+  components: FormComponent[],
+  schemaName: string
+): string {
+  const zodSchema = generateInlineZodSchema(components);
+  const defaultValues = generateInlineDefaultValues(components);
   const fields = components
-    .map((component) => generateFieldJSX(component))
+    .map((component) => generateFormFieldJSX(component))
     .join("\n\n");
 
-  return `export default function GeneratedForm() {
+  return `const ${schemaName} = ${zodSchema};
+
+export default function GeneratedForm() {
+  const form = useForm<z.infer<typeof ${schemaName}>>({
+    resolver: zodResolver(${schemaName}),
+    defaultValues: ${defaultValues},
+  });
+
+  function onSubmit(values: z.infer<typeof ${schemaName}>) {
+    console.log(values);
+  }
+
   return (
-    <div className="w-full max-w-2xl mx-auto p-6 space-y-6 bg-background dark:bg-background">
-      <div className="space-y-4">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="w-full max-w-2xl mx-auto p-6 space-y-6">
 ${indentLines(fields, 8)}
-      </div>
-    </div>
+        <Button type="submit">Submit</Button>
+      </form>
+    </Form>
   );
 }
 `;
 }
 
 /**
- * Generate JSX for a single form field based on component type
+ * Generate inline Zod schema for the form
  */
-function generateFieldJSX(component: FormComponent): string {
+function generateInlineZodSchema(components: FormComponent[]): string {
+  const fields = components.map((component) => {
+    let schema = "";
+    const name = component.name;
+
+    switch (component.type) {
+      case "input":
+      case "textarea":
+        schema = "z.string()";
+        if (component.validation.minLength) {
+          schema += `.min(${component.validation.minLength})`;
+        }
+        if (component.validation.maxLength) {
+          schema += `.max(${component.validation.maxLength})`;
+        }
+        if (component.validation.pattern) {
+          const escapedPattern = component.validation.pattern.replace(
+            /\\/g,
+            "\\\\"
+          );
+          schema += `.regex(/${escapedPattern}/)`;
+        }
+        break;
+      case "checkbox":
+      case "switch":
+        schema = "z.boolean()";
+        break;
+      case "select":
+      case "radio":
+        schema = "z.string()";
+        break;
+      case "slider":
+        schema = "z.number()";
+        if (component.validation.min !== undefined) {
+          schema += `.min(${component.validation.min})`;
+        }
+        if (component.validation.max !== undefined) {
+          schema += `.max(${component.validation.max})`;
+        }
+        break;
+      case "date":
+        schema = "z.date()";
+        break;
+      case "file":
+        schema = "z.any()";
+        break;
+      default:
+        schema = "z.string()";
+    }
+
+    if (!component.validation.required) {
+      schema += ".optional()";
+    }
+
+    return `  ${name}: ${schema}`;
+  });
+
+  return `z.object({\n${fields.join(",\n")}\n})`;
+}
+
+/**
+ * Generate inline default values for the form
+ */
+function generateInlineDefaultValues(components: FormComponent[]): string {
+  const values = components.map((component) => {
+    let value = "";
+    const name = component.name;
+
+    switch (component.type) {
+      case "checkbox":
+      case "switch":
+        value = component.defaultValue ? "true" : "false";
+        break;
+      case "slider":
+        value = String(component.defaultValue ?? component.min ?? 0);
+        break;
+      default:
+        value = component.defaultValue ? `"${component.defaultValue}"` : '""';
+    }
+
+    return `    ${name}: ${value}`;
+  });
+
+  return `{\n${values.join(",\n")}\n  }`;
+}
+
+/**
+ * Generate FormField JSX for a single form field based on component type
+ */
+function generateFormFieldJSX(component: FormComponent): string {
   switch (component.type) {
     case "input":
-      return generateInputJSX(component);
+      return generateInputFormField(component);
     case "textarea":
-      return generateTextareaJSX(component);
+      return generateTextareaFormField(component);
     case "select":
-      return generateSelectJSX(component);
+      return generateSelectFormField(component);
     case "checkbox":
-      return generateCheckboxJSX(component);
+      return generateCheckboxFormField(component);
     case "radio":
-      return generateRadioJSX(component);
+      return generateRadioFormField(component);
     case "switch":
-      return generateSwitchJSX(component);
+      return generateSwitchFormField(component);
     case "slider":
-      return generateSliderJSX(component);
+      return generateSliderFormField(component);
     case "date":
-      return generateDateJSX(component);
+      return generateDateFormField(component);
     case "file":
-      return generateFileJSX(component);
+      return generateFileFormField(component);
     default:
       return "";
   }
 }
 
 /**
- * Generate JSX for input component
+ * Generate FormField for input component
  */
-function generateInputJSX(component: FormComponent): string {
-  const required = component.validation.required ? " *" : "";
-  const placeholder = component.placeholder
-    ? ` placeholder="${component.placeholder}"`
-    : "";
-  const defaultValue = component.defaultValue
-    ? ` defaultValue="${component.defaultValue}"`
-    : "";
+function generateInputFormField(component: FormComponent): string {
+  const placeholder = component.placeholder || "";
 
-  return `<div className="space-y-2">
-  <Label htmlFor="${component.name}" className="text-foreground dark:text-foreground">
-    ${component.label}${required}
-  </Label>
-  <Input
-    id="${component.name}"
-    name="${component.name}"
-    type="text"${placeholder}${defaultValue}
-    className="bg-background dark:bg-background border-input dark:border-input"
-  />
-</div>`;
+  return `<FormField
+  control={form.control}
+  name="${component.name}"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>${component.label}</FormLabel>
+      <FormControl>
+        <Input placeholder="${placeholder}" {...field} />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>`;
 }
 
 /**
- * Generate JSX for textarea component
+ * Generate FormField for textarea component
  */
-function generateTextareaJSX(component: FormComponent): string {
-  const required = component.validation.required ? " *" : "";
-  const placeholder = component.placeholder
-    ? ` placeholder="${component.placeholder}"`
-    : "";
-  const defaultValue = component.defaultValue
-    ? ` defaultValue="${component.defaultValue}"`
-    : "";
+function generateTextareaFormField(component: FormComponent): string {
+  const placeholder = component.placeholder || "";
 
-  return `<div className="space-y-2">
-  <Label htmlFor="${component.name}" className="text-foreground dark:text-foreground">
-    ${component.label}${required}
-  </Label>
-  <Textarea
-    id="${component.name}"
-    name="${component.name}"${placeholder}${defaultValue}
-    className="bg-background dark:bg-background border-input dark:border-input"
-  />
-</div>`;
+  return `<FormField
+  control={form.control}
+  name="${component.name}"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>${component.label}</FormLabel>
+      <FormControl>
+        <Textarea placeholder="${placeholder}" {...field} />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>`;
 }
 
 /**
- * Generate JSX for select component
+ * Generate FormField for select component
  */
-function generateSelectJSX(component: FormComponent): string {
-  const required = component.validation.required ? " *" : "";
+function generateSelectFormField(component: FormComponent): string {
   const options = component.options || [];
-  const defaultValue = component.defaultValue
-    ? ` defaultValue="${component.defaultValue}"`
-    : "";
-
   const optionItems = options
     .map(
       (opt) =>
-        `      <SelectItem value="${opt.value}">${opt.label}</SelectItem>`
+        `            <SelectItem value="${opt.value}">${opt.label}</SelectItem>`
     )
     .join("\n");
 
-  return `<div className="space-y-2">
-  <Label htmlFor="${component.name}" className="text-foreground dark:text-foreground">
-    ${component.label}${required}
-  </Label>
-  <Select name="${component.name}"${defaultValue}>
-    <SelectTrigger className="bg-background dark:bg-background border-input dark:border-input">
-      <SelectValue placeholder="Select an option" />
-    </SelectTrigger>
-    <SelectContent className="bg-background dark:bg-background border-input dark:border-input">
+  return `<FormField
+  control={form.control}
+  name="${component.name}"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>${component.label}</FormLabel>
+      <Select onValueChange={field.onChange} defaultValue={field.value}>
+        <FormControl>
+          <SelectTrigger>
+            <SelectValue placeholder="Select an option" />
+          </SelectTrigger>
+        </FormControl>
+        <SelectContent>
 ${optionItems}
-    </SelectContent>
-  </Select>
-</div>`;
+        </SelectContent>
+      </Select>
+      <FormMessage />
+    </FormItem>
+  )}
+/>`;
 }
 
 /**
- * Generate JSX for checkbox component
+ * Generate FormField for checkbox component
  */
-function generateCheckboxJSX(component: FormComponent): string {
-  const required = component.validation.required ? " *" : "";
-  const defaultChecked = component.defaultValue ? " defaultChecked" : "";
-
-  return `<div className="flex items-center space-x-2">
-  <Checkbox
-    id="${component.name}"
-    name="${component.name}"${defaultChecked}
-    className="border-input dark:border-input data-[state=checked]:bg-primary dark:data-[state=checked]:bg-primary"
-  />
-  <Label
-    htmlFor="${component.name}"
-    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-foreground dark:text-foreground"
-  >
-    ${component.label}${required}
-  </Label>
-</div>`;
+function generateCheckboxFormField(component: FormComponent): string {
+  return `<FormField
+  control={form.control}
+  name="${component.name}"
+  render={({ field }) => (
+    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+      <FormControl>
+        <Checkbox
+          checked={field.value}
+          onCheckedChange={field.onChange}
+        />
+      </FormControl>
+      <div className="space-y-1 leading-none">
+        <FormLabel>${component.label}</FormLabel>
+      </div>
+    </FormItem>
+  )}
+/>`;
 }
 
 /**
- * Generate JSX for radio component
+ * Generate FormField for radio component
  */
-function generateRadioJSX(component: FormComponent): string {
-  const required = component.validation.required ? " *" : "";
+function generateRadioFormField(component: FormComponent): string {
   const options = component.options || [];
-  const defaultValue = component.defaultValue
-    ? ` defaultValue="${component.defaultValue}"`
-    : "";
-
   const radioItems = options
     .map(
-      (opt) => `    <div className="flex items-center space-x-2">
-      <RadioGroupItem value="${opt.value}" id="${component.name}-${opt.value}" className="border-input dark:border-input" />
-      <Label htmlFor="${component.name}-${opt.value}" className="text-foreground dark:text-foreground">${opt.label}</Label>
-    </div>`
+      (
+        opt
+      ) => `            <FormItem className="flex items-center space-x-3 space-y-0">
+              <FormControl>
+                <RadioGroupItem value="${opt.value}" />
+              </FormControl>
+              <FormLabel className="font-normal">${opt.label}</FormLabel>
+            </FormItem>`
     )
     .join("\n");
 
-  return `<div className="space-y-2">
-  <Label className="text-foreground dark:text-foreground">
-    ${component.label}${required}
-  </Label>
-  <RadioGroup name="${component.name}"${defaultValue} className="space-y-2">
+  return `<FormField
+  control={form.control}
+  name="${component.name}"
+  render={({ field }) => (
+    <FormItem className="space-y-3">
+      <FormLabel>${component.label}</FormLabel>
+      <FormControl>
+        <RadioGroup
+          onValueChange={field.onChange}
+          defaultValue={field.value}
+          className="flex flex-col space-y-1"
+        >
 ${radioItems}
-  </RadioGroup>
-</div>`;
+        </RadioGroup>
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>`;
 }
 
 /**
- * Generate JSX for switch component
+ * Generate FormField for switch component
  */
-function generateSwitchJSX(component: FormComponent): string {
-  const required = component.validation.required ? " *" : "";
-  const defaultChecked = component.defaultValue ? " defaultChecked" : "";
-
-  return `<div className="flex items-center justify-between space-x-2">
-  <Label htmlFor="${component.name}" className="text-foreground dark:text-foreground">
-    ${component.label}${required}
-  </Label>
-  <Switch
-    id="${component.name}"
-    name="${component.name}"${defaultChecked}
-    className="data-[state=checked]:bg-primary dark:data-[state=checked]:bg-primary"
-  />
-</div>`;
+function generateSwitchFormField(component: FormComponent): string {
+  return `<FormField
+  control={form.control}
+  name="${component.name}"
+  render={({ field }) => (
+    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+      <div className="space-y-0.5">
+        <FormLabel className="text-base">${component.label}</FormLabel>
+      </div>
+      <FormControl>
+        <Switch
+          checked={field.value}
+          onCheckedChange={field.onChange}
+        />
+      </FormControl>
+    </FormItem>
+  )}
+/>`;
 }
 
 /**
- * Generate JSX for slider component
+ * Generate FormField for slider component
  */
-function generateSliderJSX(component: FormComponent): string {
-  const required = component.validation.required ? " *" : "";
+function generateSliderFormField(component: FormComponent): string {
   const min = component.min ?? 0;
   const max = component.max ?? 100;
   const step = component.step ?? 1;
-  const defaultValue = component.defaultValue ?? min;
 
-  return `<div className="space-y-2">
-  <Label htmlFor="${component.name}" className="text-foreground dark:text-foreground">
-    ${component.label}${required}
-  </Label>
-  <Slider
-    id="${component.name}"
-    name="${component.name}"
-    min={${min}}
-    max={${max}}
-    step={${step}}
-    defaultValue={[${defaultValue}]}
-    className="**:[[role=slider]]:bg-primary dark:**:[[role=slider]]:bg-primary"
-  />
-  <div className="flex justify-between text-xs text-muted-foreground dark:text-muted-foreground">
-    <span>${min}</span>
-    <span>${max}</span>
-  </div>
-</div>`;
+  return `<FormField
+  control={form.control}
+  name="${component.name}"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>${component.label}</FormLabel>
+      <FormControl>
+        <Slider
+          min={${min}}
+          max={${max}}
+          step={${step}}
+          defaultValue={[field.value]}
+          onValueChange={(vals) => field.onChange(vals[0])}
+        />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>`;
 }
 
 /**
- * Generate JSX for date picker component
+ * Generate FormField for date picker component
  */
-function generateDateJSX(component: FormComponent): string {
-  const required = component.validation.required ? " *" : "";
-
-  return `<div className="space-y-2">
-  <Label htmlFor="${component.name}" className="text-foreground dark:text-foreground">
-    ${component.label}${required}
-  </Label>
-  <Popover>
-    <PopoverTrigger asChild>
-      <Button
-        variant="outline"
-        className={cn(
-          "w-full justify-start text-left font-normal bg-background dark:bg-background border-input dark:border-input",
-          "text-foreground dark:text-foreground"
-        )}
-      >
-        <CalendarIcon className="mr-2 h-4 w-4" />
-        <span>Pick a date</span>
-      </Button>
-    </PopoverTrigger>
-    <PopoverContent className="w-auto p-0 bg-background dark:bg-background border-input dark:border-input">
-      <Calendar
-        mode="single"
-        className="bg-background dark:bg-background"
-      />
-    </PopoverContent>
-  </Popover>
-</div>`;
+function generateDateFormField(component: FormComponent): string {
+  return `<FormField
+  control={form.control}
+  name="${component.name}"
+  render={({ field }) => (
+    <FormItem className="flex flex-col">
+      <FormLabel>${component.label}</FormLabel>
+      <Popover>
+        <PopoverTrigger asChild>
+          <FormControl>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full pl-3 text-left font-normal",
+                !field.value && "text-muted-foreground"
+              )}
+            >
+              {field.value ? (
+                format(field.value, "PPP")
+              ) : (
+                <span>Pick a date</span>
+              )}
+              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+            </Button>
+          </FormControl>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={field.value}
+            onSelect={field.onChange}
+            disabled={(date) =>
+              date > new Date() || date < new Date("1900-01-01")
+            }
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+      <FormMessage />
+    </FormItem>
+  )}
+/>`;
 }
 
 /**
- * Generate JSX for file upload component
+ * Generate FormField for file upload component
  */
-function generateFileJSX(component: FormComponent): string {
-  const required = component.validation.required ? " *" : "";
+function generateFileFormField(component: FormComponent): string {
   const accept =
-    component.accept && component.accept !== "*"
-      ? ` accept="${component.accept}"`
-      : "";
+    component.accept && component.accept !== "*" ? component.accept : "";
 
-  return `<div className="space-y-2">
-  <Label htmlFor="${component.name}" className="text-foreground dark:text-foreground">
-    ${component.label}${required}
-  </Label>
-  <Input
-    id="${component.name}"
-    name="${component.name}"
-    type="file"${accept}
-    className="bg-background dark:bg-background border-input dark:border-input file:bg-primary file:text-primary-foreground dark:file:bg-primary dark:file:text-primary-foreground"
-  />
-</div>`;
+  return `<FormField
+  control={form.control}
+  name="${component.name}"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>${component.label}</FormLabel>
+      <FormControl>
+        <Input
+          type="file"
+          accept="${accept}"
+          onChange={(e) => field.onChange(e.target.files)}
+        />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>`;
 }
 
 /**
