@@ -375,8 +375,10 @@ export const useFormBuilderStore = create<FormBuilderStore>()(
     }),
     {
       name: "formless-storage",
-      // Only persist theme preference
-      partialize: (state) => ({ theme: state.theme }),
+      partialize: (state) => ({
+        theme: state.theme,
+        components: state.components,
+      }),
     }
   )
 );
