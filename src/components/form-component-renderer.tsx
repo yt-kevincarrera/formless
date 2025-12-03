@@ -12,6 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import type { FormComponent } from "@/types/form";
 import { Controller, type Control, type FieldErrors } from "react-hook-form";
 
@@ -195,13 +205,61 @@ export function FormComponentRenderer({
           <Controller
             name={component.name}
             control={control}
-            render={({ field }) => (
-              <Input
-                {...field}
-                type="date"
-                className={error ? "border-destructive" : ""}
-              />
-            )}
+            render={({ field }) => {
+              // Parse date string to Date object, handling timezone correctly
+              const parseDate = (dateStr: string) => {
+                if (!dateStr) return undefined;
+                const [year, month, day] = dateStr.split("-").map(Number);
+                return new Date(year, month - 1, day);
+              };
+
+              const selectedDate = field.value
+                ? parseDate(field.value)
+                : undefined;
+
+              return (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !field.value && "text-muted-foreground",
+                        error && "border-destructive"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? (
+                        format(selectedDate, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => {
+                        field.onChange(date ? format(date, "yyyy-MM-dd") : "");
+                      }}
+                      disabled={(date) => {
+                        const minDate = component.validation.minDate
+                          ? parseDate(component.validation.minDate)
+                          : undefined;
+                        const maxDate = component.validation.maxDate
+                          ? parseDate(component.validation.maxDate)
+                          : undefined;
+
+                        if (minDate && date < minDate) return true;
+                        if (maxDate && date > maxDate) return true;
+                        return false;
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              );
+            }}
           />
         );
 
@@ -352,8 +410,36 @@ function StaticComponentPreview({
         );
 
       case "date":
+        const parseDate = (dateStr: string) => {
+          if (!dateStr) return undefined;
+          const [year, month, day] = dateStr.split("-").map(Number);
+          return new Date(year, month - 1, day);
+        };
+
+        const defaultDate = component.defaultValue
+          ? parseDate(component.defaultValue)
+          : undefined;
+
         return (
-          <Input type="date" defaultValue={component.defaultValue} disabled />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !component.defaultValue && "text-muted-foreground"
+                )}
+                disabled
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {defaultDate ? (
+                  format(defaultDate, "PPP")
+                ) : (
+                  <span>Pick a date</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+          </Popover>
         );
 
       case "file":

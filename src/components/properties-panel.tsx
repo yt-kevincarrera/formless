@@ -15,14 +15,22 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   useFormBuilderStore,
   selectSelectedComponent,
 } from "@/store/formBuilderStore";
 import type { FormComponent, Option } from "@/types/form";
-import { Trash2, Plus, X, AlertCircle } from "lucide-react";
+import { Trash2, Plus, X, AlertCircle, CalendarIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export function PropertiesPanel() {
   const selectedComponent = useFormBuilderStore(selectSelectedComponent);
@@ -182,6 +190,72 @@ export function PropertiesPanel() {
                     Checked by default
                   </Label>
                 </div>
+              ) : selectedComponent.type === "date" ? (
+                (() => {
+                  // Parse date string to Date object, handling timezone correctly
+                  const parseDate = (dateStr: string) => {
+                    if (!dateStr) return undefined;
+                    const [year, month, day] = dateStr.split("-").map(Number);
+                    return new Date(year, month - 1, day);
+                  };
+
+                  const selectedDate = selectedComponent.defaultValue
+                    ? parseDate(selectedComponent.defaultValue)
+                    : undefined;
+
+                  return (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !selectedComponent.defaultValue &&
+                              "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {selectedDate ? (
+                            format(selectedDate, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={(date) => {
+                            handleUpdate({
+                              defaultValue: date
+                                ? format(date, "yyyy-MM-dd")
+                                : "",
+                            });
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  );
+                })()
+              ) : selectedComponent.type === "slider" ? (
+                <Input
+                  id="defaultValue"
+                  type="number"
+                  min={selectedComponent.min ?? 0}
+                  max={selectedComponent.max ?? 100}
+                  step={selectedComponent.step ?? 1}
+                  value={selectedComponent.defaultValue ?? ""}
+                  onChange={(e) =>
+                    handleUpdate({
+                      defaultValue: e.target.value
+                        ? parseInt(e.target.value)
+                        : undefined,
+                    })
+                  }
+                  placeholder="Default value"
+                />
               ) : (
                 <Input
                   id="defaultValue"

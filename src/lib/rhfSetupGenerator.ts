@@ -78,7 +78,7 @@ function generateDefaultValuesObject(components: FormComponent[]): string {
   for (const component of components) {
     let defaultValue: string;
 
-    if (component.defaultValue !== undefined) {
+    if (component.defaultValue !== undefined && component.defaultValue !== "") {
       // Use the configured default value
       switch (component.type) {
         case "input":
@@ -95,7 +95,7 @@ function generateDefaultValuesObject(components: FormComponent[]): string {
           defaultValue = String(component.defaultValue);
           break;
         case "date":
-          defaultValue = "undefined";
+          defaultValue = `"${component.defaultValue}"`;
           break;
         case "file":
           defaultValue = "undefined";

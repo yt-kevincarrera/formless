@@ -144,8 +144,7 @@ function generateInlineZodSchema(components: FormComponent[]): string {
       case "textarea":
         // Use specific validators for email/URL
         if (component.validation.email) {
-          schema =
-            'z.email({ message: "Must be a valid email address" })';
+          schema = 'z.email({ message: "Must be a valid email address" })';
         } else if (component.validation.url) {
           schema = 'z.url({ message: "Must be a valid URL" })';
         } else {
@@ -184,7 +183,13 @@ function generateInlineZodSchema(components: FormComponent[]): string {
         }
         break;
       case "date":
-        schema = "z.date()";
+        schema = "z.coerce.date()";
+        if (component.validation.minDate) {
+          schema += `.min(new Date("${component.validation.minDate}"))`;
+        }
+        if (component.validation.maxDate) {
+          schema += `.max(new Date("${component.validation.maxDate}"))`;
+        }
         break;
       case "file":
         schema = "z.any()";
@@ -218,6 +223,14 @@ function generateInlineDefaultValues(components: FormComponent[]): string {
         break;
       case "slider":
         value = String(component.defaultValue ?? component.min ?? 0);
+        break;
+      case "date":
+        value = component.defaultValue
+          ? `"${component.defaultValue}"`
+          : "undefined";
+        break;
+      case "file":
+        value = "undefined";
         break;
       default:
         value = component.defaultValue ? `"${component.defaultValue}"` : '""';

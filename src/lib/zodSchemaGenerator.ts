@@ -117,8 +117,7 @@ function generateStringSchema(component: FormComponent): z.ZodTypeAny {
     schema = z.email({
       message: "Must be a valid email address",
     });
-  }
-  else if (validation.url) {
+  } else if (validation.url) {
     schema = z.url({
       message: "Must be a valid URL",
     });
@@ -174,11 +173,8 @@ function generateStringSchemaCode(component: FormComponent): string {
   const parts: string[] = [];
 
   if (validation.email) {
-    parts.push(
-      'z.email({ message: "Must be a valid email address" })'
-    );
-  }
-  else if (validation.url) {
+    parts.push('z.email({ message: "Must be a valid email address" })');
+  } else if (validation.url) {
     parts.push('z.url({ message: "Must be a valid URL" })');
   } else {
     parts.push("z.string()");
@@ -444,13 +440,28 @@ function generateNumberSchemaCode(component: FormComponent): string {
  * Generate date schema (runtime)
  */
 function generateDateSchema(component: FormComponent): z.ZodTypeAny {
-  let schema: z.ZodTypeAny = z.date();
+  // Use coerce to convert string to date (HTML date inputs return strings)
+  let schema: z.ZodTypeAny = z.coerce.date();
+
+  const { validation } = component;
+
+  // Add date range validations if specified
+  if (validation.minDate) {
+    const minDate = new Date(validation.minDate);
+    schema = (schema as z.ZodDate).min(minDate, {
+      message: `Date must be after ${validation.minDate}`,
+    });
+  }
+
+  if (validation.maxDate) {
+    const maxDate = new Date(validation.maxDate);
+    schema = (schema as z.ZodDate).max(maxDate, {
+      message: `Date must be before ${validation.maxDate}`,
+    });
+  }
 
   // Handle optional (when required is not set or explicitly false)
-  if (
-    component.validation.required === undefined ||
-    component.validation.required === false
-  ) {
+  if (validation.required === undefined || validation.required === false) {
     schema = schema.optional();
   }
 
@@ -461,13 +472,24 @@ function generateDateSchema(component: FormComponent): z.ZodTypeAny {
  * Generate date schema code
  */
 function generateDateSchemaCode(component: FormComponent): string {
-  const parts: string[] = ["z.date()"];
+  const parts: string[] = ["z.coerce.date()"];
+  const { validation } = component;
+
+  // Add date range validations if specified
+  if (validation.minDate) {
+    parts.push(
+      `min(new Date("${validation.minDate}"), { message: "Date must be after ${validation.minDate}" })`
+    );
+  }
+
+  if (validation.maxDate) {
+    parts.push(
+      `max(new Date("${validation.maxDate}"), { message: "Date must be before ${validation.maxDate}" })`
+    );
+  }
 
   // Handle optional (when required is not set or explicitly false)
-  if (
-    component.validation.required === undefined ||
-    component.validation.required === false
-  ) {
+  if (validation.required === undefined || validation.required === false) {
     parts.push("optional()");
   }
 
