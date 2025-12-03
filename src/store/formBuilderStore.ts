@@ -25,10 +25,16 @@ interface FormBuilderStore {
 }
 
 /**
- * Generate a unique ID for components
+ * Generate a unique ID for components using crypto.randomUUID or fallback
  */
 const generateId = (): string => {
-  return `component-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return `component-${crypto.randomUUID()}`;
+  }
+  // Fallback for older browsers
+  return `component-${Date.now()}-${Math.random()
+    .toString(36)
+    .substring(2, 11)}-${Math.random().toString(36).substring(2, 11)}`;
 };
 
 /**
@@ -104,18 +110,41 @@ const isValidRegex = (pattern: string): boolean => {
 };
 
 /**
+ * Generate a unique field name based on type and existing names
+ */
+const generateUniqueFieldName = (
+  type: ComponentType,
+  existingNames: string[]
+): string => {
+  const baseName = type.toLowerCase();
+  let counter = 1;
+  let fieldName = `${baseName}_${counter}`;
+
+  // Keep incrementing until we find a unique name
+  while (existingNames.includes(fieldName)) {
+    counter++;
+    fieldName = `${baseName}_${counter}`;
+  }
+
+  return fieldName;
+};
+
+/**
  * Get default properties for a component type
  */
 const getDefaultComponent = (
   type: ComponentType,
-  position: number
+  existingComponents: FormComponent[]
 ): FormComponent => {
   const id = generateId();
+  const existingNames = existingComponents.map((c) => c.name);
+  const uniqueName = generateUniqueFieldName(type, existingNames);
+
   const baseComponent = {
     id,
     type,
     label: `${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
-    name: `field_${position}`,
+    name: uniqueName,
     validation: {},
   };
 
@@ -189,8 +218,8 @@ export const useFormBuilderStore = create<FormBuilderStore>()(
 
       // Actions
       addComponent: (type: ComponentType, position: number) => {
-        const newComponent = getDefaultComponent(type, position);
         set((state) => {
+          const newComponent = getDefaultComponent(type, state.components);
           const newComponents = [...state.components];
           newComponents.splice(position, 0, newComponent);
           return {
