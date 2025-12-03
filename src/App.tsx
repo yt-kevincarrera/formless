@@ -4,7 +4,11 @@ import { Canvas } from "@/components/canvas";
 import { PropertiesPanel } from "@/components/properties-panel";
 import { CodeDisplay } from "@/components/code-display";
 import { Toaster } from "@/components/ui/sonner";
-import { useFormBuilderStore } from "@/store/formBuilderStore";
+import {
+  useFormBuilderStore,
+  selectSelectedComponentId,
+  selectComponents,
+} from "@/store/formBuilderStore";
 import { useEffect, useState } from "react";
 import {
   AlertDialog,
@@ -18,10 +22,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 function App() {
-  const selectedComponentId = useFormBuilderStore(
-    (state) => state.selectedComponentId
-  );
-  const components = useFormBuilderStore((state) => state.components);
+  const selectedComponentId = useFormBuilderStore(selectSelectedComponentId);
+  const components = useFormBuilderStore(selectComponents);
   const removeComponent = useFormBuilderStore((state) => state.removeComponent);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [componentToDelete, setComponentToDelete] = useState<string | null>(
@@ -30,7 +32,6 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Check if Delete or Backspace is pressed
       if (e.key === "Delete" || e.key === "Backspace") {
         // Don't trigger if user is typing in an input field
         const target = e.target as HTMLElement;

@@ -14,23 +14,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useFormBuilderStore } from "@/store/formBuilderStore";
+import {
+  useFormBuilderStore,
+  selectSelectedComponent,
+} from "@/store/formBuilderStore";
 import type { FormComponent, Option } from "@/types/form";
 import { Trash2, Plus, X } from "lucide-react";
 import { useState } from "react";
 
 export function PropertiesPanel() {
-  const selectedComponentId = useFormBuilderStore(
-    (state) => state.selectedComponentId
-  );
-  const components = useFormBuilderStore((state) => state.components);
+  const selectedComponent = useFormBuilderStore(selectSelectedComponent);
   const updateComponent = useFormBuilderStore((state) => state.updateComponent);
   const removeComponent = useFormBuilderStore((state) => state.removeComponent);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-  const selectedComponent = components.find(
-    (c) => c.id === selectedComponentId
-  );
 
   if (!selectedComponent) {
     return (

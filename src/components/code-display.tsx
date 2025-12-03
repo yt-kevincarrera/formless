@@ -1,11 +1,15 @@
-import { useFormBuilderStore } from "@/store/formBuilderStore";
+import {
+  useFormBuilderStore,
+  selectComponents,
+  selectTheme,
+} from "@/store/formBuilderStore";
 import { generateReactComponent } from "@/lib/reactComponentGenerator";
 import { generateZodSchemaCode } from "@/lib/zodSchemaGenerator";
 import { generateRHFSetup } from "@/lib/rhfSetupGenerator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
   vscDarkPlus,
@@ -14,14 +18,47 @@ import {
 import { toast } from "sonner";
 
 export function CodeDisplay() {
-  const components = useFormBuilderStore((state) => state.components);
-  const theme = useFormBuilderStore((state) => state.theme);
+  // Use optimized selectors
+  const components = useFormBuilderStore(selectComponents);
+  const theme = useFormBuilderStore(selectTheme);
   const [copiedTab, setCopiedTab] = useState<string | null>(null);
 
-  // Generate code for all three tabs
-  const componentCode = generateReactComponent(components);
-  const schemaCode = generateZodSchemaCode(components);
-  const setupCode = generateRHFSetup(components);
+  // Memoize code generation to avoid unnecessary recalculations
+  const componentCode = useMemo(() => {
+    const startTime = performance.now();
+    const code = generateReactComponent(components);
+    const endTime = performance.now();
+    if (endTime - startTime > 100) {
+      console.warn(
+        `Component code generation took ${(endTime - startTime).toFixed(2)}ms`
+      );
+    }
+    return code;
+  }, [components]);
+
+  const schemaCode = useMemo(() => {
+    const startTime = performance.now();
+    const code = generateZodSchemaCode(components);
+    const endTime = performance.now();
+    if (endTime - startTime > 100) {
+      console.warn(
+        `Schema code generation took ${(endTime - startTime).toFixed(2)}ms`
+      );
+    }
+    return code;
+  }, [components]);
+
+  const setupCode = useMemo(() => {
+    const startTime = performance.now();
+    const code = generateRHFSetup(components);
+    const endTime = performance.now();
+    if (endTime - startTime > 100) {
+      console.warn(
+        `Setup code generation took ${(endTime - startTime).toFixed(2)}ms`
+      );
+    }
+    return code;
+  }, [components]);
 
   const handleCopy = async (code: string, tabName: string) => {
     try {
@@ -39,7 +76,10 @@ export function CodeDisplay() {
     }
   };
 
-  const syntaxTheme = theme === "dark" ? vscDarkPlus : vs;
+  const syntaxTheme = useMemo(
+    () => (theme === "dark" ? vscDarkPlus : vs),
+    [theme]
+  );
 
   return (
     <div className="h-full flex flex-col bg-background border-l border-border">

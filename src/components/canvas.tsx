@@ -14,7 +14,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card } from "@/components/ui/card";
-import { useFormBuilderStore } from "@/store/formBuilderStore";
+import {
+  useFormBuilderStore,
+  selectComponents,
+  selectSelectedComponentId,
+} from "@/store/formBuilderStore";
 import type { FormComponent } from "@/types/form";
 import { FormComponentRenderer } from "@/components/form-component-renderer";
 import { useState, useMemo } from "react";
@@ -101,10 +105,8 @@ function SortableComponent({
 }
 
 export function Canvas() {
-  const components = useFormBuilderStore((state) => state.components);
-  const selectedComponentId = useFormBuilderStore(
-    (state) => state.selectedComponentId
-  );
+  const components = useFormBuilderStore(selectComponents);
+  const selectedComponentId = useFormBuilderStore(selectSelectedComponentId);
   const addComponent = useFormBuilderStore((state) => state.addComponent);
   const reorderComponents = useFormBuilderStore(
     (state) => state.reorderComponents

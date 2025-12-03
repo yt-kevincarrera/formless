@@ -219,3 +219,13 @@ export const useFormBuilderStore = create<FormBuilderStore>()(
     }
   )
 );
+
+// Optimized selectors for better performance
+export const selectComponents = (state: FormBuilderStore) => state.components;
+export const selectSelectedComponentId = (state: FormBuilderStore) =>
+  state.selectedComponentId;
+export const selectTheme = (state: FormBuilderStore) => state.theme;
+export const selectSelectedComponent = (state: FormBuilderStore) => {
+  const { components, selectedComponentId } = state;
+  return components.find((c) => c.id === selectedComponentId) || null;
+};
