@@ -5,6 +5,7 @@ import { useFormBuilderStore } from "@/store/formBuilderStore";
 import { ExportDialog } from "@/components/export-dialog";
 import { ImportDialog } from "@/components/import-dialog";
 import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog";
+import { FormSettingsDialog } from "@/components/form-settings-dialog";
 
 export function Header() {
   const theme = useFormBuilderStore((state) => state.theme);
@@ -22,6 +23,7 @@ export function Header() {
           <p className="text-sm text-muted-foreground">Visual Form Builder</p>
         </div>
         <div className="flex items-center gap-4">
+          <FormSettingsDialog />
           <ImportDialog />
           <ExportDialog />
           <KeyboardShortcutsDialog />

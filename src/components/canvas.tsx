@@ -6,6 +6,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   useFormBuilderStore,
   selectComponents,
@@ -20,6 +21,7 @@ import {
   generateZodSchema,
   generateDefaultValues,
 } from "@/lib/zodSchemaGenerator";
+import { toast } from "sonner";
 
 interface SortableComponentProps {
   component: FormComponent;
@@ -139,6 +141,7 @@ function SortableComponent({
 export function Canvas() {
   const components = useFormBuilderStore(selectComponents);
   const selectedComponentId = useFormBuilderStore(selectSelectedComponentId);
+  const settings = useFormBuilderStore((state) => state.settings);
   const selectComponent = useFormBuilderStore((state) => state.selectComponent);
   const removeComponent = useFormBuilderStore((state) => state.removeComponent);
 
@@ -203,6 +206,19 @@ export function Canvas() {
     id: "canvas-droppable",
   });
 
+  const handleSubmit = (data: any) => {
+    toast.success("Form submitted!", {
+      description: (
+        <pre className="mt-2 w-full rounded-md bg-slate-950 p-4 overflow-auto">
+          <code className="text-white text-xs">
+            {JSON.stringify(data, null, 2)}
+          </code>
+        </pre>
+      ),
+      duration: 10000,
+    });
+  };
+
   return (
     <main
       className="h-full overflow-y-auto p-6 bg-background"
@@ -211,54 +227,79 @@ export function Canvas() {
     >
       <div className="max-w-4xl mx-auto">
         <h2 className="text-2xl font-bold mb-6 text-foreground">Canvas</h2>
-        <Card
-          ref={setNodeRef}
-          role="region"
-          aria-label="Form builder canvas - drop components here"
-          className={`p-8 min-h-[400px] transition-colors ${
-            isOver ? "bg-accent/50 border-primary" : ""
-          }`}
-        >
-          {components.length === 0 ? (
-            <div
-              className="flex items-center justify-center h-[400px]"
-              role="status"
-              aria-live="polite"
-            >
-              <div className="text-center">
-                <p className="text-muted-foreground text-lg mb-2">
-                  Drag components from the sidebar to start building your form
-                </p>
-                <p className="text-muted-foreground text-sm">
-                  You can reorder components by dragging them within the canvas
-                </p>
-              </div>
-            </div>
-          ) : (
-            <SortableContext
-              items={components.map((c) => c.id)}
-              strategy={verticalListSortingStrategy}
-            >
+        <form onSubmit={control.handleSubmit(handleSubmit)}>
+          <Card
+            ref={setNodeRef}
+            role="region"
+            aria-label="Form builder canvas - drop components here"
+            className={`p-8 min-h-[400px] transition-colors ${
+              isOver ? "bg-accent/50 border-primary" : ""
+            }`}
+          >
+            {components.length === 0 ? (
               <div
-                className="space-y-3"
-                role="list"
-                aria-label="Form components"
+                className="flex items-center justify-center h-[400px]"
+                role="status"
+                aria-live="polite"
               >
-                {components.map((component) => (
-                  <div key={component.id} role="listitem">
-                    <SortableComponent
-                      component={component}
-                      isSelected={component.id === selectedComponentId}
-                      onSelect={selectComponent}
-                      control={control}
-                      errors={errors}
-                    />
-                  </div>
-                ))}
+                <div className="text-center">
+                  <p className="text-muted-foreground text-lg mb-2">
+                    Drag components from the sidebar to start building your form
+                  </p>
+                  <p className="text-muted-foreground text-sm">
+                    You can reorder components by dragging them within the
+                    canvas
+                  </p>
+                </div>
               </div>
-            </SortableContext>
-          )}
-        </Card>
+            ) : (
+              <>
+                <SortableContext
+                  items={components.map((c) => c.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div
+                    className={`gap-3 ${
+                      settings.layout === "two-column"
+                        ? "grid grid-cols-2"
+                        : "space-y-3"
+                    }`}
+                    role="list"
+                    aria-label="Form components"
+                  >
+                    {components.map((component) => (
+                      <div key={component.id} role="listitem">
+                        <SortableComponent
+                          component={component}
+                          isSelected={component.id === selectedComponentId}
+                          onSelect={selectComponent}
+                          control={control}
+                          errors={errors}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </SortableContext>
+
+                {/* Form Buttons */}
+                {(settings.showSubmitButton || settings.showCancelButton) && (
+                  <div className="flex gap-3 pt-4 border-t mt-6">
+                    {settings.showSubmitButton && (
+                      <Button type="submit">
+                        {settings.submitButtonText || "Submit"}
+                      </Button>
+                    )}
+                    {settings.showCancelButton && (
+                      <Button type="button" variant="outline">
+                        {settings.cancelButtonText || "Cancel"}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </Card>
+        </form>
       </div>
     </main>
   );

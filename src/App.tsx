@@ -165,7 +165,7 @@ function App() {
             </Tabs>
           </div>
         </div>
-        <Toaster />
+        <Toaster closeButton />
 
         <DragOverlay>
           {activeId ? (

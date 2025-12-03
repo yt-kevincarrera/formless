@@ -228,17 +228,26 @@ function generateSelectSchema(component: FormComponent): z.ZodTypeAny {
     string,
     ...string[]
   ];
-  let schema: z.ZodTypeAny = component.validation.customMessage
-    ? z.enum(values, { message: component.validation.customMessage })
-    : z.enum(values);
 
   // Handle optional (when required is not set or explicitly false)
   if (
     component.validation.required === undefined ||
     component.validation.required === false
   ) {
-    schema = schema.optional();
+    // For optional selects, allow empty string or the enum values
+    let schema: z.ZodTypeAny = z.union([
+      z.literal(""),
+      component.validation.customMessage
+        ? z.enum(values, { message: component.validation.customMessage })
+        : z.enum(values),
+    ]);
+    return schema.optional();
   }
+
+  // For required selects, just use enum
+  let schema: z.ZodTypeAny = component.validation.customMessage
+    ? z.enum(values, { message: component.validation.customMessage })
+    : z.enum(values);
 
   return schema;
 }
@@ -252,25 +261,21 @@ function generateSelectSchemaCode(component: FormComponent): string {
   }
 
   const values = component.options.map((opt) => `"${opt.value}"`).join(", ");
-  const parts: string[] = [`z.enum([${values}])`];
-
   const message = component.validation.customMessage
     ? `, { message: "${component.validation.customMessage}" }`
     : "";
-
-  if (message) {
-    parts[0] = `z.enum([${values}]${message})`;
-  }
 
   // Handle optional (when required is not set or explicitly false)
   if (
     component.validation.required === undefined ||
     component.validation.required === false
   ) {
-    parts.push("optional()");
+    // For optional selects, allow empty string or the enum values
+    return `z.union([z.literal(""), z.enum([${values}]${message})]).optional()`;
   }
 
-  return parts.join(".");
+  // For required selects, just use enum
+  return `z.enum([${values}]${message})`;
 }
 
 /**
@@ -285,17 +290,26 @@ function generateRadioSchema(component: FormComponent): z.ZodTypeAny {
     string,
     ...string[]
   ];
-  let schema: z.ZodTypeAny = component.validation.customMessage
-    ? z.enum(values, { message: component.validation.customMessage })
-    : z.enum(values);
 
   // Handle optional (when required is not set or explicitly false)
   if (
     component.validation.required === undefined ||
     component.validation.required === false
   ) {
-    schema = schema.optional();
+    // For optional radios, allow empty string or the enum values
+    let schema: z.ZodTypeAny = z.union([
+      z.literal(""),
+      component.validation.customMessage
+        ? z.enum(values, { message: component.validation.customMessage })
+        : z.enum(values),
+    ]);
+    return schema.optional();
   }
+
+  // For required radios, just use enum
+  let schema: z.ZodTypeAny = component.validation.customMessage
+    ? z.enum(values, { message: component.validation.customMessage })
+    : z.enum(values);
 
   return schema;
 }
@@ -309,25 +323,21 @@ function generateRadioSchemaCode(component: FormComponent): string {
   }
 
   const values = component.options.map((opt) => `"${opt.value}"`).join(", ");
-  const parts: string[] = [`z.enum([${values}])`];
-
   const message = component.validation.customMessage
     ? `, { message: "${component.validation.customMessage}" }`
     : "";
-
-  if (message) {
-    parts[0] = `z.enum([${values}]${message})`;
-  }
 
   // Handle optional (when required is not set or explicitly false)
   if (
     component.validation.required === undefined ||
     component.validation.required === false
   ) {
-    parts.push("optional()");
+    // For optional radios, allow empty string or the enum values
+    return `z.union([z.literal(""), z.enum([${values}]${message})]).optional()`;
   }
 
-  return parts.join(".");
+  // For required radios, just use enum
+  return `z.enum([${values}]${message})`;
 }
 
 /**

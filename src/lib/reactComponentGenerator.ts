@@ -4,14 +4,17 @@ import type { FormComponent } from "../types/form";
  * Generate a complete React component code string from form components
  * This function creates production-ready React code using shadcn/ui Form components with Controller
  */
-export function generateReactComponent(components: FormComponent[]): string {
+export function generateReactComponent(
+  components: FormComponent[],
+  settings?: any
+): string {
   if (components.length === 0) {
     return generateEmptyComponent();
   }
 
   const imports = generateImports(components);
   const schemaName = "formSchema";
-  const componentBody = generateComponentBody(components, schemaName);
+  const componentBody = generateComponentBody(components, schemaName, settings);
 
   return `${imports}
 
@@ -99,13 +102,45 @@ function generateImports(components: FormComponent[]): string {
  */
 function generateComponentBody(
   components: FormComponent[],
-  schemaName: string
+  schemaName: string,
+  settings?: any
 ): string {
   const zodSchema = generateInlineZodSchema(components);
   const defaultValues = generateInlineDefaultValues(components);
   const fields = components
     .map((component) => generateFormFieldJSX(component))
     .join("\n\n");
+
+  const showSubmit = settings?.showSubmitButton !== false;
+  const showCancel = settings?.showCancelButton === true;
+  const submitText = settings?.submitButtonText || "Submit";
+  const cancelText = settings?.cancelButtonText || "Cancel";
+  const layout = settings?.layout || "single";
+
+  let buttons = "";
+  if (showSubmit || showCancel) {
+    const buttonElements = [];
+    if (showSubmit) {
+      buttonElements.push(`<Button type="submit">${submitText}</Button>`);
+    }
+    if (showCancel) {
+      buttonElements.push(
+        `<Button type="button" variant="outline">${cancelText}</Button>`
+      );
+    }
+    buttons = `\n        <div className="flex gap-3">\n          ${buttonElements.join(
+      "\n          "
+    )}\n        </div>`;
+  }
+
+  // Wrap fields in layout container if two-column
+  const layoutClass = layout === "two-column" ? "grid grid-cols-2 gap-3" : "";
+  const fieldsContainer = layoutClass
+    ? `<div className="${layoutClass}">\n${indentLines(
+        fields,
+        10
+      )}\n        </div>`
+    : indentLines(fields, 8);
 
   return `const ${schemaName} = ${zodSchema};
 
@@ -122,8 +157,7 @@ export default function GeneratedForm() {
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="w-full max-w-2xl mx-auto p-6">
       <FieldGroup>
-${indentLines(fields, 8)}
-        <Button type="submit">Submit</Button>
+${fieldsContainer}${buttons}
       </FieldGroup>
     </form>
   );

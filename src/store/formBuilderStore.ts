@@ -1,11 +1,17 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { FormComponent, FormSchema, ComponentType } from "../types/form";
+import type {
+  FormComponent,
+  FormSchema,
+  ComponentType,
+  FormSettings,
+} from "../types/form";
 
 interface FormBuilderStore {
   // Form state
   components: FormComponent[];
   selectedComponentId: string | null;
+  settings: FormSettings;
 
   // UI state
   theme: "light" | "dark";
@@ -17,6 +23,7 @@ interface FormBuilderStore {
   reorderComponents: (startIndex: number, endIndex: number) => void;
   selectComponent: (id: string | null) => void;
   setTheme: (theme: "light" | "dark") => void;
+  updateSettings: (updates: Partial<FormSettings>) => void;
 
   // Import/Export
   exportSchema: () => string;
@@ -221,6 +228,13 @@ export const useFormBuilderStore = create<FormBuilderStore>()(
       components: [],
       selectedComponentId: null,
       theme: "light",
+      settings: {
+        showSubmitButton: true,
+        showCancelButton: false,
+        submitButtonText: "Submit",
+        cancelButtonText: "Cancel",
+        layout: "single",
+      },
 
       // Actions
       addComponent: (type: ComponentType, position: number) => {
@@ -322,12 +336,19 @@ export const useFormBuilderStore = create<FormBuilderStore>()(
         set({ theme });
       },
 
+      updateSettings: (updates: Partial<FormSettings>) => {
+        set((state) => ({
+          settings: { ...state.settings, ...updates },
+        }));
+      },
+
       // Import/Export
       exportSchema: () => {
         const state = get();
         const schema: FormSchema = {
           version: "1.0.0",
           components: state.components,
+          settings: state.settings,
           metadata: {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -358,6 +379,13 @@ export const useFormBuilderStore = create<FormBuilderStore>()(
 
           set({
             components: schema.components,
+            settings: schema.settings || {
+              showSubmitButton: true,
+              showCancelButton: false,
+              submitButtonText: "Submit",
+              cancelButtonText: "Cancel",
+              layout: "single",
+            },
             selectedComponentId: null,
           });
         } catch (error) {
@@ -378,6 +406,7 @@ export const useFormBuilderStore = create<FormBuilderStore>()(
       partialize: (state) => ({
         theme: state.theme,
         components: state.components,
+        settings: state.settings,
       }),
     }
   )

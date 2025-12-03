@@ -50,6 +50,9 @@ export interface FormComponent {
   step?: number;
   accept?: string;
   maxSize?: number;
+  // Layout options
+  width?: "full" | "half" | "third";
+  order?: number;
 }
 
 export interface FormSchema {
@@ -61,4 +64,13 @@ export interface FormSchema {
     name?: string;
     description?: string;
   };
+  settings?: FormSettings;
+}
+
+export interface FormSettings {
+  showSubmitButton?: boolean;
+  showCancelButton?: boolean;
+  submitButtonText?: string;
+  cancelButtonText?: string;
+  layout?: "single" | "two-column";
 }

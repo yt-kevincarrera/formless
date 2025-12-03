@@ -20,13 +20,14 @@ import { toast } from "sonner";
 export function CodeDisplay() {
   // Use optimized selectors
   const components = useFormBuilderStore(selectComponents);
+  const settings = useFormBuilderStore((state) => state.settings);
   const theme = useFormBuilderStore(selectTheme);
   const [copiedTab, setCopiedTab] = useState<string | null>(null);
 
   // Memoize code generation to avoid unnecessary recalculations
   const componentCode = useMemo(() => {
     const startTime = performance.now();
-    const code = generateReactComponent(components);
+    const code = generateReactComponent(components, settings);
     const endTime = performance.now();
     if (endTime - startTime > 100) {
       console.warn(
@@ -34,7 +35,7 @@ export function CodeDisplay() {
       );
     }
     return code;
-  }, [components]);
+  }, [components, settings]);
 
   const schemaCode = useMemo(() => {
     const startTime = performance.now();
