@@ -55,12 +55,30 @@ function SortableComponent({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+  const handleContainerClick = (e: React.MouseEvent) => {
+    // Don't select if clicking on an input/textarea/button (to allow interaction)
+    const target = e.target as HTMLElement;
+    const isInteractiveElement =
+      target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.tagName === "BUTTON" ||
+      target.tagName === "SELECT" ||
+      target.closest("button") ||
+      target.closest('[role="slider"]') ||
+      target.closest('[role="checkbox"]') ||
+      target.closest('[role="switch"]');
+
+    if (!isInteractiveElement) {
+      onSelect(component.id);
+    }
+  };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+      onClick={handleContainerClick}
+      className={`p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
         isDragging
           ? "opacity-30 scale-95 rotate-2 shadow-xl border-primary"
           : isSelected
@@ -75,6 +93,7 @@ function SortableComponent({
           {...listeners}
           className="flex items-center justify-between cursor-grab active:cursor-grabbing p-2 -m-2 rounded hover:bg-accent/50 transition-colors"
           title="Drag to reorder"
+          onClick={(e) => e.stopPropagation()}
         >
           <div className="flex-1">
             <div className="text-xs text-muted-foreground font-medium">
@@ -85,7 +104,27 @@ function SortableComponent({
         </div>
 
         {/* Actual form component preview with validation */}
-        <div onClick={() => onSelect(component.id)} className="cursor-pointer">
+        <div
+          className="pointer-events-auto"
+          onFocus={() => onSelect(component.id)}
+          onMouseDown={(e) => {
+            // Select on mouse down for immediate feedback
+            const target = e.target as HTMLElement;
+            const isInteractiveElement =
+              target.tagName === "INPUT" ||
+              target.tagName === "TEXTAREA" ||
+              target.tagName === "BUTTON" ||
+              target.tagName === "SELECT" ||
+              target.closest("button") ||
+              target.closest('[role="slider"]') ||
+              target.closest('[role="checkbox"]') ||
+              target.closest('[role="switch"]');
+
+            if (isInteractiveElement) {
+              onSelect(component.id);
+            }
+          }}
+        >
           <FormComponentRenderer
             component={component}
             control={control}
