@@ -38,13 +38,13 @@ function generateEmptyComponent(): string {
 function generateImports(components: FormComponent[]): string {
   const imports = new Set<string>();
 
-  // Always include these base imports for React Hook Form and shadcn Form
-  imports.add('import { useForm } from "react-hook-form";');
+  // Always include these base imports for React Hook Form and shadcn Field
+  imports.add('import { useForm, Controller } from "react-hook-form";');
   imports.add('import { zodResolver } from "@hookform/resolvers/zod";');
   imports.add('import * as z from "zod";');
   imports.add('import { Button } from "@/components/ui/button";');
   imports.add(
-    'import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";'
+    'import { Field, FieldLabel, FieldDescription, FieldError, FieldGroup } from "@/components/ui/field";'
   );
 
   // Determine which shadcn/ui components are needed
@@ -120,12 +120,12 @@ export default function GeneratedForm() {
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="w-full max-w-2xl mx-auto p-6 space-y-6">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="w-full max-w-2xl mx-auto p-6">
+      <FieldGroup>
 ${indentLines(fields, 8)}
         <Button type="submit">Submit</Button>
-      </form>
-    </Form>
+      </FieldGroup>
+    </form>
   );
 }
 `;
@@ -249,223 +249,206 @@ function generateFormFieldJSX(component: FormComponent): string {
 }
 
 /**
- * Generate FormField for input component
+ * Generate Field for input component
  */
 function generateInputFormField(component: FormComponent): string {
   const placeholder = component.placeholder || "";
 
-  return `<FormField
-  control={form.control}
-  name="${component.name}"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>${component.label}</FormLabel>
-      <FormControl>
-        <Input placeholder="${placeholder}" {...field} />
-      </FormControl>
-      <FormMessage />
-    </FormItem>
-  )}
-/>`;
+  return `<Field>
+  <FieldLabel htmlFor="${component.name}">${component.label}</FieldLabel>
+  <Input
+    id="${component.name}"
+    placeholder="${placeholder}"
+    {...form.register("${component.name}")}
+    aria-invalid={!!form.formState.errors.${component.name}}
+  />
+  <FieldError errors={[form.formState.errors.${component.name}]} />
+</Field>`;
 }
 
 /**
- * Generate FormField for textarea component
+ * Generate Field for textarea component
  */
 function generateTextareaFormField(component: FormComponent): string {
   const placeholder = component.placeholder || "";
 
-  return `<FormField
-  control={form.control}
-  name="${component.name}"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>${component.label}</FormLabel>
-      <FormControl>
-        <Textarea placeholder="${placeholder}" {...field} />
-      </FormControl>
-      <FormMessage />
-    </FormItem>
-  )}
-/>`;
+  return `<Field>
+  <FieldLabel htmlFor="${component.name}">${component.label}</FieldLabel>
+  <Textarea
+    id="${component.name}"
+    placeholder="${placeholder}"
+    {...form.register("${component.name}")}
+    aria-invalid={!!form.formState.errors.${component.name}}
+  />
+  <FieldError errors={[form.formState.errors.${component.name}]} />
+</Field>`;
 }
 
 /**
- * Generate FormField for select component
+ * Generate Field for select component using Controller
  */
 function generateSelectFormField(component: FormComponent): string {
   const options = component.options || [];
   const optionItems = options
     .map(
       (opt) =>
-        `            <SelectItem value="${opt.value}">${opt.label}</SelectItem>`
+        `          <SelectItem value="${opt.value}">${opt.label}</SelectItem>`
     )
     .join("\n");
 
-  return `<FormField
-  control={form.control}
-  name="${component.name}"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>${component.label}</FormLabel>
+  return `<Field>
+  <FieldLabel htmlFor="${component.name}">${component.label}</FieldLabel>
+  <Controller
+    name="${component.name}"
+    control={form.control}
+    render={({ field }) => (
       <Select onValueChange={field.onChange} defaultValue={field.value}>
-        <FormControl>
-          <SelectTrigger>
-            <SelectValue placeholder="Select an option" />
-          </SelectTrigger>
-        </FormControl>
+        <SelectTrigger id="${component.name}" aria-invalid={!!form.formState.errors.${component.name}}>
+          <SelectValue placeholder="Select an option" />
+        </SelectTrigger>
         <SelectContent>
 ${optionItems}
         </SelectContent>
       </Select>
-      <FormMessage />
-    </FormItem>
-  )}
-/>`;
+    )}
+  />
+  <FieldError errors={[form.formState.errors.${component.name}]} />
+</Field>`;
 }
 
 /**
- * Generate FormField for checkbox component
+ * Generate Field for checkbox component using Controller
  */
 function generateCheckboxFormField(component: FormComponent): string {
-  return `<FormField
-  control={form.control}
-  name="${component.name}"
-  render={({ field }) => (
-    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-      <FormControl>
-        <Checkbox
-          checked={field.value}
-          onCheckedChange={field.onChange}
-        />
-      </FormControl>
-      <div className="space-y-1 leading-none">
-        <FormLabel>${component.label}</FormLabel>
-      </div>
-    </FormItem>
-  )}
-/>`;
+  return `<Field orientation="horizontal">
+  <Controller
+    name="${component.name}"
+    control={form.control}
+    render={({ field }) => (
+      <Checkbox
+        id="${component.name}"
+        checked={field.value}
+        onCheckedChange={field.onChange}
+        aria-invalid={!!form.formState.errors.${component.name}}
+      />
+    )}
+  />
+  <FieldLabel htmlFor="${component.name}">${component.label}</FieldLabel>
+  <FieldError errors={[form.formState.errors.${component.name}]} />
+</Field>`;
 }
 
 /**
- * Generate FormField for radio component
+ * Generate Field for radio component using Controller
  */
 function generateRadioFormField(component: FormComponent): string {
   const options = component.options || [];
   const radioItems = options
     .map(
-      (
-        opt
-      ) => `            <FormItem className="flex items-center space-x-3 space-y-0">
-              <FormControl>
-                <RadioGroupItem value="${opt.value}" />
-              </FormControl>
-              <FormLabel className="font-normal">${opt.label}</FormLabel>
-            </FormItem>`
+      (opt) => `          <Field orientation="horizontal">
+            <RadioGroupItem value="${opt.value}" id="${component.name}-${opt.value}" />
+            <FieldLabel htmlFor="${component.name}-${opt.value}">${opt.label}</FieldLabel>
+          </Field>`
     )
     .join("\n");
 
-  return `<FormField
-  control={form.control}
-  name="${component.name}"
-  render={({ field }) => (
-    <FormItem className="space-y-3">
-      <FormLabel>${component.label}</FormLabel>
-      <FormControl>
-        <RadioGroup
-          onValueChange={field.onChange}
-          defaultValue={field.value}
-          className="flex flex-col space-y-1"
-        >
+  return `<Field>
+  <FieldLabel>${component.label}</FieldLabel>
+  <Controller
+    name="${component.name}"
+    control={form.control}
+    render={({ field }) => (
+      <RadioGroup
+        onValueChange={field.onChange}
+        defaultValue={field.value}
+        aria-invalid={!!form.formState.errors.${component.name}}
+      >
 ${radioItems}
-        </RadioGroup>
-      </FormControl>
-      <FormMessage />
-    </FormItem>
-  )}
-/>`;
+      </RadioGroup>
+    )}
+  />
+  <FieldError errors={[form.formState.errors.${component.name}]} />
+</Field>`;
 }
 
 /**
- * Generate FormField for switch component
+ * Generate Field for switch component using Controller
  */
 function generateSwitchFormField(component: FormComponent): string {
-  return `<FormField
-  control={form.control}
-  name="${component.name}"
-  render={({ field }) => (
-    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-      <div className="space-y-0.5">
-        <FormLabel className="text-base">${component.label}</FormLabel>
-      </div>
-      <FormControl>
-        <Switch
-          checked={field.value}
-          onCheckedChange={field.onChange}
-        />
-      </FormControl>
-    </FormItem>
-  )}
-/>`;
+  return `<Field orientation="horizontal">
+  <FieldLabel htmlFor="${component.name}">${component.label}</FieldLabel>
+  <Controller
+    name="${component.name}"
+    control={form.control}
+    render={({ field }) => (
+      <Switch
+        id="${component.name}"
+        checked={field.value}
+        onCheckedChange={field.onChange}
+        aria-invalid={!!form.formState.errors.${component.name}}
+      />
+    )}
+  />
+  <FieldError errors={[form.formState.errors.${component.name}]} />
+</Field>`;
 }
 
 /**
- * Generate FormField for slider component
+ * Generate Field for slider component using Controller
  */
 function generateSliderFormField(component: FormComponent): string {
   const min = component.min ?? 0;
   const max = component.max ?? 100;
   const step = component.step ?? 1;
 
-  return `<FormField
-  control={form.control}
-  name="${component.name}"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>${component.label}</FormLabel>
-      <FormControl>
-        <Slider
-          min={${min}}
-          max={${max}}
-          step={${step}}
-          defaultValue={[field.value]}
-          onValueChange={(vals) => field.onChange(vals[0])}
-        />
-      </FormControl>
-      <FormMessage />
-    </FormItem>
-  )}
-/>`;
+  return `<Field>
+  <FieldLabel htmlFor="${component.name}">${component.label}</FieldLabel>
+  <Controller
+    name="${component.name}"
+    control={form.control}
+    render={({ field }) => (
+      <Slider
+        id="${component.name}"
+        min={${min}}
+        max={${max}}
+        step={${step}}
+        defaultValue={[field.value]}
+        onValueChange={(vals) => field.onChange(vals[0])}
+        aria-invalid={!!form.formState.errors.${component.name}}
+      />
+    )}
+  />
+  <FieldError errors={[form.formState.errors.${component.name}]} />
+</Field>`;
 }
 
 /**
- * Generate FormField for date picker component
+ * Generate Field for date picker component using Controller
  */
 function generateDateFormField(component: FormComponent): string {
-  return `<FormField
-  control={form.control}
-  name="${component.name}"
-  render={({ field }) => (
-    <FormItem className="flex flex-col">
-      <FormLabel>${component.label}</FormLabel>
+  return `<Field>
+  <FieldLabel>${component.label}</FieldLabel>
+  <Controller
+    name="${component.name}"
+    control={form.control}
+    render={({ field }) => (
       <Popover>
         <PopoverTrigger asChild>
-          <FormControl>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full pl-3 text-left font-normal",
-                !field.value && "text-muted-foreground"
-              )}
-            >
-              {field.value ? (
-                format(field.value, "PPP")
-              ) : (
-                <span>Pick a date</span>
-              )}
-              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-            </Button>
-          </FormControl>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-full pl-3 text-left font-normal",
+              !field.value && "text-muted-foreground"
+            )}
+            aria-invalid={!!form.formState.errors.${component.name}}
+          >
+            {field.value ? (
+              format(field.value, "PPP")
+            ) : (
+              <span>Pick a date</span>
+            )}
+            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+          </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
@@ -479,36 +462,30 @@ function generateDateFormField(component: FormComponent): string {
           />
         </PopoverContent>
       </Popover>
-      <FormMessage />
-    </FormItem>
-  )}
-/>`;
+    )}
+  />
+  <FieldError errors={[form.formState.errors.${component.name}]} />
+</Field>`;
 }
 
 /**
- * Generate FormField for file upload component
+ * Generate Field for file upload component
  */
 function generateFileFormField(component: FormComponent): string {
   const accept =
     component.accept && component.accept !== "*" ? component.accept : "";
 
-  return `<FormField
-  control={form.control}
-  name="${component.name}"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>${component.label}</FormLabel>
-      <FormControl>
-        <Input
-          type="file"
-          accept="${accept}"
-          onChange={(e) => field.onChange(e.target.files)}
-        />
-      </FormControl>
-      <FormMessage />
-    </FormItem>
-  )}
-/>`;
+  return `<Field>
+  <FieldLabel htmlFor="${component.name}">${component.label}</FieldLabel>
+  <Input
+    id="${component.name}"
+    type="file"
+    accept="${accept}"
+    {...form.register("${component.name}")}
+    aria-invalid={!!form.formState.errors.${component.name}}
+  />
+  <FieldError errors={[form.formState.errors.${component.name}]} />
+</Field>`;
 }
 
 /**
