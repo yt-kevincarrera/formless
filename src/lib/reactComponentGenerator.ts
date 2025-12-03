@@ -256,29 +256,41 @@ function generateInputFormField(component: FormComponent): string {
 
   return `<Field>
   <FieldLabel htmlFor="${component.name}">${component.label}</FieldLabel>
-  <Input
-    id="${component.name}"
-    placeholder="${placeholder}"
-    {...form.register("${component.name}")}
-    aria-invalid={!!form.formState.errors.${component.name}}
+  <Controller
+    name="${component.name}"
+    control={form.control}
+    render={({ field }) => (
+      <Input
+        id="${component.name}"
+        placeholder="${placeholder}"
+        {...field}
+        aria-invalid={!!form.formState.errors.${component.name}}
+      />
+    )}
   />
   <FieldError errors={[form.formState.errors.${component.name}]} />
 </Field>`;
 }
 
 /**
- * Generate Field for textarea component
+ * Generate Field for textarea component using Controller
  */
 function generateTextareaFormField(component: FormComponent): string {
   const placeholder = component.placeholder || "";
 
   return `<Field>
   <FieldLabel htmlFor="${component.name}">${component.label}</FieldLabel>
-  <Textarea
-    id="${component.name}"
-    placeholder="${placeholder}"
-    {...form.register("${component.name}")}
-    aria-invalid={!!form.formState.errors.${component.name}}
+  <Controller
+    name="${component.name}"
+    control={form.control}
+    render={({ field }) => (
+      <Textarea
+        id="${component.name}"
+        placeholder="${placeholder}"
+        {...field}
+        aria-invalid={!!form.formState.errors.${component.name}}
+      />
+    )}
   />
   <FieldError errors={[form.formState.errors.${component.name}]} />
 </Field>`;
@@ -469,7 +481,7 @@ function generateDateFormField(component: FormComponent): string {
 }
 
 /**
- * Generate Field for file upload component
+ * Generate Field for file upload component using Controller
  */
 function generateFileFormField(component: FormComponent): string {
   const accept =
@@ -477,12 +489,19 @@ function generateFileFormField(component: FormComponent): string {
 
   return `<Field>
   <FieldLabel htmlFor="${component.name}">${component.label}</FieldLabel>
-  <Input
-    id="${component.name}"
-    type="file"
-    accept="${accept}"
-    {...form.register("${component.name}")}
-    aria-invalid={!!form.formState.errors.${component.name}}
+  <Controller
+    name="${component.name}"
+    control={form.control}
+    render={({ field: { onChange, value, ...field } }) => (
+      <Input
+        id="${component.name}"
+        type="file"
+        accept="${accept}"
+        onChange={(e) => onChange(e.target.files)}
+        aria-invalid={!!form.formState.errors.${component.name}}
+        {...field}
+      />
+    )}
   />
   <FieldError errors={[form.formState.errors.${component.name}]} />
 </Field>`;
