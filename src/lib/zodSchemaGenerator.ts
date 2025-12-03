@@ -110,8 +110,21 @@ function generateFieldSchemaCode(component: FormComponent): string {
  * Generate string schema with validation rules (runtime)
  */
 function generateStringSchema(component: FormComponent): z.ZodTypeAny {
-  let schema: z.ZodTypeAny = z.string();
   const { validation } = component;
+  let schema: z.ZodTypeAny;
+
+  if (validation.email) {
+    schema = z.email({
+      message: "Must be a valid email address",
+    });
+  }
+  else if (validation.url) {
+    schema = z.url({
+      message: "Must be a valid URL",
+    });
+  } else {
+    schema = z.string();
+  }
 
   // If required is explicitly true, add min(1) to reject empty strings
   if (validation.required === true) {
@@ -157,10 +170,20 @@ function generateStringSchema(component: FormComponent): z.ZodTypeAny {
  * Generate string schema code with validation rules
  */
 function generateStringSchemaCode(component: FormComponent): string {
-  const parts: string[] = ["z.string()"];
   const { validation } = component;
+  const parts: string[] = [];
 
-  // If required is explicitly true, add min(1) to reject empty strings
+  if (validation.email) {
+    parts.push(
+      'z.email({ message: "Must be a valid email address" })'
+    );
+  }
+  else if (validation.url) {
+    parts.push('z.url({ message: "Must be a valid URL" })');
+  } else {
+    parts.push("z.string()");
+  }
+
   if (validation.required === true) {
     parts.push(`min(1, { message: "This field is required" })`);
   }

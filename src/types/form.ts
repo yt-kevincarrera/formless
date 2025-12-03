@@ -20,7 +20,15 @@ export interface ValidationRules {
   pattern?: string;
   min?: number;
   max?: number;
+  email?: boolean;
+  url?: boolean;
   customMessage?: string;
+  // Date validations
+  minDate?: string;
+  maxDate?: string;
+  // File validations
+  maxFileSize?: number;
+  allowedFileTypes?: string[];
 }
 
 export interface Option {

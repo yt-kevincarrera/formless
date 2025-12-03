@@ -142,7 +142,16 @@ function generateInlineZodSchema(components: FormComponent[]): string {
     switch (component.type) {
       case "input":
       case "textarea":
-        schema = "z.string()";
+        // Use specific validators for email/URL
+        if (component.validation.email) {
+          schema =
+            'z.email({ message: "Must be a valid email address" })';
+        } else if (component.validation.url) {
+          schema = 'z.url({ message: "Must be a valid URL" })';
+        } else {
+          schema = "z.string()";
+        }
+
         if (component.validation.minLength) {
           schema += `.min(${component.validation.minLength})`;
         }
@@ -249,10 +258,18 @@ function generateFormFieldJSX(component: FormComponent): string {
 }
 
 /**
- * Generate Field for input component
+ * Generate Field for input component using Controller
  */
 function generateInputFormField(component: FormComponent): string {
   const placeholder = component.placeholder || "";
+
+  // Determine input type based on validation
+  let inputType = "text";
+  if (component.validation.email) {
+    inputType = "email";
+  } else if (component.validation.url) {
+    inputType = "url";
+  }
 
   return `<Field>
   <FieldLabel htmlFor="${component.name}">${component.label}</FieldLabel>
@@ -262,6 +279,7 @@ function generateInputFormField(component: FormComponent): string {
     render={({ field }) => (
       <Input
         id="${component.name}"
+        type="${inputType}"
         placeholder="${placeholder}"
         {...field}
         aria-invalid={!!form.formState.errors.${component.name}}

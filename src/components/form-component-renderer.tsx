@@ -39,6 +39,14 @@ export function FormComponentRenderer({
   const renderComponent = () => {
     switch (component.type) {
       case "input":
+        // Determine input type based on validation
+        let inputType = "text";
+        if (component.validation.email) {
+          inputType = "email";
+        } else if (component.validation.url) {
+          inputType = "url";
+        }
+
         return (
           <Controller
             name={component.name}
@@ -46,6 +54,7 @@ export function FormComponentRenderer({
             render={({ field }) => (
               <Input
                 {...field}
+                type={inputType}
                 placeholder={component.placeholder}
                 className={error ? "border-destructive" : ""}
               />

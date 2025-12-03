@@ -153,11 +153,13 @@ const getDefaultComponent = (
       return {
         ...baseComponent,
         placeholder: "Enter text...",
+        defaultValue: "",
       };
     case "textarea":
       return {
         ...baseComponent,
         placeholder: "Enter text...",
+        defaultValue: "",
       };
     case "select":
       return {
@@ -166,6 +168,7 @@ const getDefaultComponent = (
           { label: "Option 1", value: "option1" },
           { label: "Option 2", value: "option2" },
         ],
+        defaultValue: "",
       };
     case "checkbox":
       return {
@@ -179,6 +182,7 @@ const getDefaultComponent = (
           { label: "Option 1", value: "option1" },
           { label: "Option 2", value: "option2" },
         ],
+        defaultValue: "",
       };
     case "switch":
       return {
@@ -196,12 +200,14 @@ const getDefaultComponent = (
     case "date":
       return {
         ...baseComponent,
+        defaultValue: undefined,
       };
     case "file":
       return {
         ...baseComponent,
         accept: "*",
         maxSize: 5242880, // 5MB in bytes
+        defaultValue: undefined,
       };
     default:
       return baseComponent;

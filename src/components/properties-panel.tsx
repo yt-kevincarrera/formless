@@ -227,6 +227,7 @@ export function PropertiesPanel() {
                 <Input
                   id="minLength"
                   type="number"
+                  min="0"
                   value={selectedComponent.validation.minLength || ""}
                   onChange={(e) =>
                     handleUpdate({
@@ -247,6 +248,7 @@ export function PropertiesPanel() {
                 <Input
                   id="maxLength"
                   type="number"
+                  min="0"
                   value={selectedComponent.validation.maxLength || ""}
                   onChange={(e) =>
                     handleUpdate({
@@ -261,6 +263,52 @@ export function PropertiesPanel() {
                   placeholder="Maximum length"
                 />
               </div>
+
+              {selectedComponent.type === "input" && (
+                <>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="email"
+                      checked={selectedComponent.validation.email || false}
+                      onCheckedChange={(checked) =>
+                        handleUpdate({
+                          validation: {
+                            ...selectedComponent.validation,
+                            email: checked as boolean,
+                            url: checked
+                              ? false
+                              : selectedComponent.validation.url,
+                          },
+                        })
+                      }
+                    />
+                    <Label htmlFor="email" className="font-normal">
+                      Must be valid email
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="url"
+                      checked={selectedComponent.validation.url || false}
+                      onCheckedChange={(checked) =>
+                        handleUpdate({
+                          validation: {
+                            ...selectedComponent.validation,
+                            url: checked as boolean,
+                            email: checked
+                              ? false
+                              : selectedComponent.validation.email,
+                          },
+                        })
+                      }
+                    />
+                    <Label htmlFor="url" className="font-normal">
+                      Must be valid URL
+                    </Label>
+                  </div>
+                </>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="pattern">Pattern (Regex)</Label>
@@ -305,7 +353,7 @@ export function PropertiesPanel() {
                 <Input
                   id="min"
                   type="number"
-                  value={selectedComponent.validation.min || ""}
+                  value={selectedComponent.validation.min ?? ""}
                   onChange={(e) =>
                     handleUpdate({
                       validation: {
@@ -325,7 +373,7 @@ export function PropertiesPanel() {
                 <Input
                   id="max"
                   type="number"
-                  value={selectedComponent.validation.max || ""}
+                  value={selectedComponent.validation.max ?? ""}
                   onChange={(e) =>
                     handleUpdate({
                       validation: {
@@ -338,6 +386,51 @@ export function PropertiesPanel() {
                   }
                   placeholder="Maximum value"
                 />
+              </div>
+            </>
+          )}
+
+          {/* Date validation */}
+          {selectedComponent.type === "date" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="minDate">Min Date</Label>
+                <Input
+                  id="minDate"
+                  type="date"
+                  value={selectedComponent.validation.minDate || ""}
+                  onChange={(e) =>
+                    handleUpdate({
+                      validation: {
+                        ...selectedComponent.validation,
+                        minDate: e.target.value || undefined,
+                      },
+                    })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Earliest allowed date
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="maxDate">Max Date</Label>
+                <Input
+                  id="maxDate"
+                  type="date"
+                  value={selectedComponent.validation.maxDate || ""}
+                  onChange={(e) =>
+                    handleUpdate({
+                      validation: {
+                        ...selectedComponent.validation,
+                        maxDate: e.target.value || undefined,
+                      },
+                    })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Latest allowed date
+                </p>
               </div>
             </>
           )}
