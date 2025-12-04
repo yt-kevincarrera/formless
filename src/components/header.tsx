@@ -2,6 +2,7 @@ import { Moon, Sun } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useFormBuilderStore } from "@/store/formBuilderStore";
+import { CodeSnippetsLibrary } from "@/components/code-snippets-library";
 import { ExportDialog } from "@/components/export-dialog";
 import { ImportDialog } from "@/components/import-dialog";
 import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog";
@@ -23,6 +24,7 @@ export function Header() {
           <p className="text-sm text-muted-foreground">Visual Form Builder</p>
         </div>
         <div className="flex items-center gap-4">
+          <CodeSnippetsLibrary />
           <FormSettingsDialog />
           <ImportDialog />
           <ExportDialog />
