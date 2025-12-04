@@ -112,6 +112,44 @@ function generateComponentBody(
   const showCancel = settings?.showCancelButton === true;
   const submitText = settings?.submitButtonText || "Submit";
   const cancelText = settings?.cancelButtonText || "Cancel";
+  const resetOnSubmit = settings?.resetOnSubmit || false;
+  const showSuccessMessage = settings?.showSuccessMessage !== false;
+  const successMessage =
+    settings?.successMessage || "Form submitted successfully!";
+  const formWidth = settings?.formWidth || "md";
+  const spacing = settings?.spacing || "normal";
+
+  // Get max width class
+  const getMaxWidthClass = () => {
+    switch (formWidth) {
+      case "sm":
+        return "max-w-2xl";
+      case "md":
+        return "max-w-4xl";
+      case "lg":
+        return "max-w-5xl";
+      case "xl":
+        return "max-w-6xl";
+      case "full":
+        return "max-w-full";
+      default:
+        return "max-w-4xl";
+    }
+  };
+
+  // Get spacing class
+  const getSpacingClass = () => {
+    switch (spacing) {
+      case "compact":
+        return "space-y-2";
+      case "normal":
+        return "space-y-4";
+      case "relaxed":
+        return "space-y-6";
+      default:
+        return "space-y-4";
+    }
+  };
 
   let buttons = "";
   if (showSubmit || showCancel) {
@@ -183,7 +221,27 @@ function generateComponentBody(
     })
     .join("\n\n");
 
-  const fieldsContainer = `<div className="space-y-4">\n${fieldsWithLayout}\n        </div>`;
+  const fieldsContainer = `<div className="${getSpacingClass()}">\n${fieldsWithLayout}\n        </div>`;
+
+  const onSubmitCode = resetOnSubmit
+    ? `  function onSubmit(values: z.infer<typeof ${schemaName}>) {
+    console.log(values);
+    ${
+      showSuccessMessage
+        ? `// Show success message\n    alert("${successMessage}");`
+        : ""
+    }
+    // Reset form after submission
+    form.reset();
+  }`
+    : `  function onSubmit(values: z.infer<typeof ${schemaName}>) {
+    console.log(values);
+    ${
+      showSuccessMessage
+        ? `// Show success message\n    alert("${successMessage}");`
+        : ""
+    }
+  }`;
 
   return `const ${schemaName} = ${zodSchema};
 
@@ -193,12 +251,10 @@ export default function GeneratedForm() {
     defaultValues: ${defaultValues},
   });
 
-  function onSubmit(values: z.infer<typeof ${schemaName}>) {
-    console.log(values);
-  }
+${onSubmitCode}
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="w-full max-w-2xl mx-auto p-6">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="w-full ${getMaxWidthClass()} mx-auto p-6">
       <FieldGroup>
 ${fieldsContainer}${buttons}
       </FieldGroup>

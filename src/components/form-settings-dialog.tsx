@@ -36,25 +36,73 @@ export function FormSettingsDialog() {
         <DialogHeader>
           <DialogTitle>Form Settings</DialogTitle>
           <DialogDescription>
-            Configure the layout and buttons for your form
+            Configure your form's appearance and behavior
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-6 py-4">
-          {/* Layout */}
+        <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto">
+          {/* Form Metadata */}
+          <div className="space-y-3">
+            <h3 className="font-medium text-sm">Form Information</h3>
+            <div className="space-y-2">
+              <Label htmlFor="formName">Form Name</Label>
+              <Input
+                id="formName"
+                value={settings.formName}
+                onChange={(e) => updateSettings({ formName: e.target.value })}
+                placeholder="My Form"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="formDescription">Description (optional)</Label>
+              <Input
+                id="formDescription"
+                value={settings.formDescription}
+                onChange={(e) =>
+                  updateSettings({ formDescription: e.target.value })
+                }
+                placeholder="Brief description of your form"
+              />
+            </div>
+          </div>
+
+          {/* Form Width */}
           <div className="space-y-2">
-            <Label htmlFor="layout">Layout</Label>
+            <Label htmlFor="formWidth">Form Width</Label>
             <Select
-              value={settings.layout}
-              onValueChange={(value: "single" | "two-column") =>
-                updateSettings({ layout: value })
+              value={settings.formWidth}
+              onValueChange={(value: "sm" | "md" | "lg" | "xl" | "full") =>
+                updateSettings({ formWidth: value })
               }
             >
-              <SelectTrigger id="layout">
+              <SelectTrigger id="formWidth">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="single">Single Column</SelectItem>
-                <SelectItem value="two-column">Two Columns</SelectItem>
+                <SelectItem value="sm">Small (640px)</SelectItem>
+                <SelectItem value="md">Medium (768px)</SelectItem>
+                <SelectItem value="lg">Large (1024px)</SelectItem>
+                <SelectItem value="xl">Extra Large (1280px)</SelectItem>
+                <SelectItem value="full">Full Width</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Spacing */}
+          <div className="space-y-2">
+            <Label htmlFor="spacing">Field Spacing</Label>
+            <Select
+              value={settings.spacing}
+              onValueChange={(value: "compact" | "normal" | "relaxed") =>
+                updateSettings({ spacing: value })
+              }
+            >
+              <SelectTrigger id="spacing">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="compact">Compact</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="relaxed">Relaxed</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -112,6 +160,48 @@ export function FormSettingsDialog() {
                     updateSettings({ cancelButtonText: e.target.value })
                   }
                   placeholder="Cancel"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Form Behavior */}
+          <div className="space-y-3">
+            <h3 className="font-medium text-sm">Form Behavior</h3>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="resetOnSubmit"
+                checked={settings.resetOnSubmit}
+                onCheckedChange={(checked) =>
+                  updateSettings({ resetOnSubmit: checked as boolean })
+                }
+              />
+              <Label htmlFor="resetOnSubmit" className="font-normal">
+                Reset form after submission
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="showSuccessMessage"
+                checked={settings.showSuccessMessage}
+                onCheckedChange={(checked) =>
+                  updateSettings({ showSuccessMessage: checked as boolean })
+                }
+              />
+              <Label htmlFor="showSuccessMessage" className="font-normal">
+                Show success message
+              </Label>
+            </div>
+            {settings.showSuccessMessage && (
+              <div className="space-y-2 ml-6">
+                <Label htmlFor="successMessage">Success Message</Label>
+                <Input
+                  id="successMessage"
+                  value={settings.successMessage}
+                  onChange={(e) =>
+                    updateSettings({ successMessage: e.target.value })
+                  }
+                  placeholder="Form submitted successfully!"
                 />
               </div>
             )}

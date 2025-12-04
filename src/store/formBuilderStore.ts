@@ -301,11 +301,17 @@ export const useFormBuilderStore = create<FormBuilderStore>()(
         selectedComponentId: null,
         theme: "light",
         settings: {
+          formName: "My Form",
+          formDescription: "",
           showSubmitButton: true,
           showCancelButton: false,
           submitButtonText: "Submit",
           cancelButtonText: "Cancel",
-          layout: "single",
+          resetOnSubmit: false,
+          showSuccessMessage: true,
+          successMessage: "Form submitted successfully!",
+          formWidth: "md",
+          spacing: "normal",
         },
 
         // History
@@ -467,11 +473,17 @@ export const useFormBuilderStore = create<FormBuilderStore>()(
             set({
               components: schema.components,
               settings: schema.settings || {
+                formName: "My Form",
+                formDescription: "",
                 showSubmitButton: true,
                 showCancelButton: false,
                 submitButtonText: "Submit",
                 cancelButtonText: "Cancel",
-                layout: "single",
+                resetOnSubmit: false,
+                showSuccessMessage: true,
+                successMessage: "Form submitted successfully!",
+                formWidth: "md",
+                spacing: "normal",
               },
               selectedComponentId: null,
             });

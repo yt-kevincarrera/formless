@@ -72,9 +72,18 @@ export interface FormSchema {
 }
 
 export interface FormSettings {
+  formName?: string;
+  formDescription?: string;
+
   showSubmitButton?: boolean;
   showCancelButton?: boolean;
   submitButtonText?: string;
   cancelButtonText?: string;
-  layout?: "single" | "two-column";
+
+  resetOnSubmit?: boolean;
+  showSuccessMessage?: boolean;
+  successMessage?: string;
+
+  formWidth?: "sm" | "md" | "lg" | "xl" | "full";
+  spacing?: "compact" | "normal" | "relaxed";
 }

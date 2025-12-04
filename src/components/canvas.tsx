@@ -306,16 +306,40 @@ export function Canvas() {
   });
 
   const handleSubmit = (data: any) => {
-    toast.success("Form submitted!", {
-      description: (
-        <pre className="mt-2 w-full rounded-md bg-slate-950 p-4 overflow-auto">
-          <code className="text-white text-xs">
-            {JSON.stringify(data, null, 2)}
-          </code>
-        </pre>
-      ),
-      duration: 10000,
-    });
+    if (settings.showSuccessMessage) {
+      toast.success(settings.successMessage || "Form submitted!", {
+        description: (
+          <pre className="mt-2 w-full rounded-md bg-slate-950 p-4 overflow-auto">
+            <code className="text-white text-xs">
+              {JSON.stringify(data, null, 2)}
+            </code>
+          </pre>
+        ),
+        duration: 10000,
+      });
+    }
+
+    if (settings.resetOnSubmit) {
+      reset(defaultValues);
+    }
+  };
+
+  // Get max width class based on settings
+  const getMaxWidthClass = () => {
+    switch (settings.formWidth) {
+      case "sm":
+        return "max-w-2xl";
+      case "md":
+        return "max-w-4xl";
+      case "lg":
+        return "max-w-5xl";
+      case "xl":
+        return "max-w-6xl";
+      case "full":
+        return "max-w-full";
+      default:
+        return "max-w-4xl";
+    }
   };
 
   return (
@@ -324,7 +348,7 @@ export function Canvas() {
       role="main"
       aria-label="Form canvas"
     >
-      <div className="max-w-6xl mx-auto">
+      <div className={`${getMaxWidthClass()} mx-auto`}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-foreground">Canvas</h2>
           <div className="flex items-center gap-2">
