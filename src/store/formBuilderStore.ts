@@ -24,6 +24,7 @@ interface FormBuilderStore {
   selectComponent: (id: string | null) => void;
   setTheme: (theme: "light" | "dark") => void;
   updateSettings: (updates: Partial<FormSettings>) => void;
+  clearAll: () => void;
 
   // Import/Export
   exportSchema: () => string;
@@ -161,9 +162,9 @@ const getDefaultHeight = (type: ComponentType): number => {
     case "switch":
       return 1.25;
     case "textarea":
-      return 3; 
+      return 3;
     default:
-      return 2; 
+      return 2;
   }
 };
 
@@ -185,7 +186,9 @@ const getDefaultComponent = (
     type,
     label: `${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
     name: uniqueName,
-    validation: {},
+    validation: {
+      required: true,
+    },
     layout: {
       x: 0,
       y: nextY,
@@ -431,6 +434,13 @@ export const useFormBuilderStore = create<FormBuilderStore>()(
           console.error("Failed to import schema:", error);
           throw error;
         }
+      },
+
+      clearAll: () => {
+        set({
+          components: [],
+          selectedComponentId: null,
+        });
       },
 
       reset: () => {

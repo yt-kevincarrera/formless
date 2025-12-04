@@ -2,6 +2,16 @@ import { useDroppable } from "@dnd-kit/core";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   useFormBuilderStore,
   selectComponents,
   selectSelectedComponentId,
@@ -17,6 +27,7 @@ import {
 } from "@/lib/zodSchemaGenerator";
 import { toast } from "sonner";
 import GridLayout, { type Layout } from "react-grid-layout";
+import { Trash2 } from "lucide-react";
 import "react-grid-layout/css/styles.css";
 
 interface GridComponentProps {
@@ -78,11 +89,7 @@ function GridComponent({
 
         {/* Actual form component preview with validation */}
         <div
-          className={`pointer-events-auto flex-1 min-h-0 ${
-            component.type === "radio" || component.type === "select"
-              ? "overflow-y-auto"
-              : "overflow-visible"
-          }`}
+          className="pointer-events-auto flex-1 min-h-0 overflow-y-auto"
           onFocus={() => onSelect(component.id)}
           onMouseDown={(e) => {
             // Select on mouse down for immediate feedback
@@ -120,9 +127,11 @@ export function Canvas() {
   const selectComponent = useFormBuilderStore((state) => state.selectComponent);
   const removeComponent = useFormBuilderStore((state) => state.removeComponent);
   const updateComponent = useFormBuilderStore((state) => state.updateComponent);
+  const clearAll = useFormBuilderStore((state) => state.clearAll);
 
   const gridContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
   // Measure container width
   useEffect(() => {
@@ -154,11 +163,11 @@ export function Canvas() {
         switch (type) {
           case "checkbox":
           case "switch":
-            return 1.25; 
+            return 1.25;
           case "textarea":
-            return 2; 
+            return 2;
           default:
-            return 2; 
+            return 2;
         }
       };
 
@@ -287,7 +296,26 @@ export function Canvas() {
       aria-label="Form canvas"
     >
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-foreground">Canvas</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-foreground">Canvas</h2>
+          {components.length > 0 && (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowClearDialog(true)}
+              title={`Remove all ${components.length} component${
+                components.length === 1 ? "" : "s"
+              }`}
+              aria-label={`Remove all ${components.length} component${
+                components.length === 1 ? "" : "s"
+              } from canvas`}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Clear All ({components.length})
+            </Button>
+          )}
+        </div>
         <form onSubmit={control.handleSubmit(handleSubmit)}>
           <Card
             ref={setNodeRef}
@@ -376,6 +404,33 @@ export function Canvas() {
             )}
           </Card>
         </form>
+
+        {/* Clear All Confirmation Dialog */}
+        <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Clear All Components?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will remove all {components.length} component
+                {components.length === 1 ? "" : "s"} from the canvas. This
+                action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  clearAll();
+                  toast.success("All components removed");
+                  setShowClearDialog(false);
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Clear All
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </main>
   );
