@@ -50,9 +50,13 @@ export interface FormComponent {
   step?: number;
   accept?: string;
   maxSize?: number;
-  // Layout options
-  width?: "full" | "half" | "third";
-  order?: number;
+  // Layout positioning for react-grid-layout
+  layout?: {
+    x: number; // Column position (0-11)
+    y: number; // Row position
+    w: number; // Width in columns (1-12)
+    h: number; // Height in rows
+  };
 }
 
 export interface FormSchema {

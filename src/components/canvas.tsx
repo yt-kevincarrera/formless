@@ -1,10 +1,4 @@
 import { useDroppable } from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +8,7 @@ import {
 } from "@/store/formBuilderStore";
 import type { FormComponent } from "@/types/form";
 import { FormComponentRenderer } from "@/components/form-component-renderer";
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -22,8 +16,10 @@ import {
   generateDefaultValues,
 } from "@/lib/zodSchemaGenerator";
 import { toast } from "sonner";
+import GridLayout, { type Layout } from "react-grid-layout";
+import "react-grid-layout/css/styles.css";
 
-interface SortableComponentProps {
+interface GridComponentProps {
   component: FormComponent;
   isSelected: boolean;
   onSelect: (id: string) => void;
@@ -31,32 +27,13 @@ interface SortableComponentProps {
   errors: any;
 }
 
-function SortableComponent({
+function GridComponent({
   component,
   isSelected,
   onSelect,
   control,
   errors,
-}: SortableComponentProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: component.id,
-    data: {
-      type: component.type,
-      source: "canvas",
-    },
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+}: GridComponentProps) {
   const handleContainerClick = (e: React.MouseEvent) => {
     // Don't select if clicking on an input/textarea/button (to allow interaction)
     const target = e.target as HTMLElement;
@@ -77,24 +54,18 @@ function SortableComponent({
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
       onClick={handleContainerClick}
-      className={`p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
-        isDragging
-          ? "opacity-30 scale-95 rotate-2 shadow-xl border-primary"
-          : isSelected
+      className={`h-full w-full p-3 rounded-lg border-2 transition-all duration-200 cursor-pointer overflow-hidden ${
+        isSelected
           ? "border-primary bg-accent shadow-md"
           : "border-border bg-card hover:border-primary/50 hover:shadow-sm"
       }`}
     >
-      <div className="space-y-2">
+      <div className="h-full flex flex-col gap-1.5">
         {/* Drag handle area */}
         <div
-          {...attributes}
-          {...listeners}
-          className="flex items-center justify-between cursor-grab active:cursor-grabbing p-2 -m-2 rounded hover:bg-accent/50 transition-colors"
-          title="Drag to reorder"
+          className="flex items-center justify-between cursor-grab active:cursor-grabbing p-1.5 -mx-1.5 rounded hover:bg-accent/50 transition-colors shrink-0"
+          title="Drag to move or resize"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex-1">
@@ -107,7 +78,11 @@ function SortableComponent({
 
         {/* Actual form component preview with validation */}
         <div
-          className="pointer-events-auto"
+          className={`pointer-events-auto flex-1 min-h-0 ${
+            component.type === "radio" || component.type === "select"
+              ? "overflow-y-auto"
+              : "overflow-visible"
+          }`}
           onFocus={() => onSelect(component.id)}
           onMouseDown={(e) => {
             // Select on mouse down for immediate feedback
@@ -144,6 +119,88 @@ export function Canvas() {
   const settings = useFormBuilderStore((state) => state.settings);
   const selectComponent = useFormBuilderStore((state) => state.selectComponent);
   const removeComponent = useFormBuilderStore((state) => state.removeComponent);
+  const updateComponent = useFormBuilderStore((state) => state.updateComponent);
+
+  const gridContainerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(800);
+
+  // Measure container width
+  useEffect(() => {
+    const updateWidth = () => {
+      if (gridContainerRef.current) {
+        const width = gridContainerRef.current.offsetWidth;
+        setContainerWidth(width);
+      }
+    };
+
+    // Initial measurement
+    updateWidth();
+
+    window.addEventListener("resize", updateWidth);
+    const resizeObserver = new ResizeObserver(updateWidth);
+    if (gridContainerRef.current) {
+      resizeObserver.observe(gridContainerRef.current);
+    }
+
+    return () => {
+      window.removeEventListener("resize", updateWidth);
+      resizeObserver.disconnect();
+    };
+  }, [components.length]); // Re-measure when components change
+
+  const layout: Layout[] = useMemo(() => {
+    return components.map((component, index) => {
+      const getMinHeight = (type: string) => {
+        switch (type) {
+          case "checkbox":
+          case "switch":
+            return 1.25; 
+          case "textarea":
+            return 2; 
+          default:
+            return 2; 
+        }
+      };
+
+      const defaultH = component.layout?.h ?? 2;
+      const minH = getMinHeight(component.type);
+
+      return {
+        i: component.id,
+        x: component.layout?.x ?? 0,
+        y: component.layout?.y ?? index * 2,
+        w: component.layout?.w ?? 12,
+        h: defaultH,
+        minW: 2, // Minimum 2 columns
+        minH: minH,
+      };
+    });
+  }, [components]);
+
+  const handleLayoutChange = (newLayout: Layout[]) => {
+    newLayout.forEach((item) => {
+      const component = components.find((c) => c.id === item.i);
+      if (component) {
+        const currentLayout = component.layout || { x: 0, y: 0, w: 12, h: 1 };
+        const hasChanged =
+          currentLayout.x !== item.x ||
+          currentLayout.y !== item.y ||
+          currentLayout.w !== item.w ||
+          currentLayout.h !== item.h;
+
+        if (hasChanged) {
+          updateComponent(component.id, {
+            layout: {
+              x: item.x,
+              y: item.y,
+              w: item.w,
+              h: item.h,
+            },
+          });
+        }
+      }
+    });
+  };
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -204,6 +261,10 @@ export function Canvas() {
 
   const { setNodeRef, isOver } = useDroppable({
     id: "canvas-droppable",
+    data: {
+      type: "canvas",
+      source: "canvas",
+    },
   });
 
   const handleSubmit = (data: any) => {
@@ -225,7 +286,7 @@ export function Canvas() {
       role="main"
       aria-label="Form canvas"
     >
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <h2 className="text-2xl font-bold mb-6 text-foreground">Canvas</h2>
         <form onSubmit={control.handleSubmit(handleSubmit)}>
           <Card
@@ -247,29 +308,34 @@ export function Canvas() {
                     Drag components from the sidebar to start building your form
                   </p>
                   <p className="text-muted-foreground text-sm">
-                    You can reorder components by dragging them within the
-                    canvas
+                    Drag to reposition • Drag corners to resize
                   </p>
                 </div>
               </div>
             ) : (
               <>
-                <SortableContext
-                  items={components.map((c) => c.id)}
-                  strategy={verticalListSortingStrategy}
+                <div
+                  ref={gridContainerRef}
+                  className="w-full relative"
+                  style={{ minHeight: "200px" }}
                 >
-                  <div
-                    className={`gap-3 ${
-                      settings.layout === "two-column"
-                        ? "grid grid-cols-1 md:grid-cols-2"
-                        : "space-y-3"
-                    }`}
-                    role="list"
-                    aria-label="Form components"
+                  <GridLayout
+                    className="layout"
+                    layout={layout}
+                    cols={12}
+                    rowHeight={55}
+                    width={containerWidth}
+                    onLayoutChange={handleLayoutChange}
+                    draggableHandle=".cursor-grab"
+                    compactType={null}
+                    preventCollision={false}
+                    isResizable={true}
+                    isDraggable={true}
+                    margin={[8, 8]}
                   >
                     {components.map((component) => (
-                      <div key={component.id} role="listitem">
-                        <SortableComponent
+                      <div key={component.id}>
+                        <GridComponent
                           component={component}
                           isSelected={component.id === selectedComponentId}
                           onSelect={selectComponent}
@@ -278,8 +344,18 @@ export function Canvas() {
                         />
                       </div>
                     ))}
-                  </div>
-                </SortableContext>
+                  </GridLayout>
+
+                  {/* Helpful hint overlay */}
+                  {components.length > 0 && (
+                    <div className="mt-4 p-3 bg-muted/50 rounded-md text-xs text-muted-foreground">
+                      <strong>💡 Tips:</strong> Drag the <strong>⋮⋮</strong>{" "}
+                      icon to move • Drag the{" "}
+                      <strong>bottom-right corner</strong> to resize • Change
+                      width in Properties panel
+                    </div>
+                  )}
+                </div>
 
                 {/* Form Buttons */}
                 {(settings.showSubmitButton || settings.showCancelButton) && (

@@ -137,6 +137,37 @@ const generateUniqueFieldName = (
 };
 
 /**
+ * Calculate next available Y position for new component
+ */
+const getNextYPosition = (existingComponents: FormComponent[]): number => {
+  if (existingComponents.length === 0) return 0;
+
+  const maxY = Math.max(
+    ...existingComponents.map((c) => {
+      const layout = c.layout || { x: 0, y: 0, w: 12, h: 1 };
+      return layout.y + layout.h;
+    })
+  );
+  return maxY;
+};
+
+/**
+ * Get default height based on component type
+ * Heights are in grid rows (1 row = ~55px)
+ */
+const getDefaultHeight = (type: ComponentType): number => {
+  switch (type) {
+    case "checkbox":
+    case "switch":
+      return 1.25;
+    case "textarea":
+      return 3; 
+    default:
+      return 2; 
+  }
+};
+
+/**
  * Get default properties for a component type
  */
 const getDefaultComponent = (
@@ -146,6 +177,8 @@ const getDefaultComponent = (
   const id = generateId();
   const existingNames = existingComponents.map((c) => c.name);
   const uniqueName = generateUniqueFieldName(type, existingNames);
+  const nextY = getNextYPosition(existingComponents);
+  const height = getDefaultHeight(type);
 
   const baseComponent = {
     id,
@@ -153,6 +186,12 @@ const getDefaultComponent = (
     label: `${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
     name: uniqueName,
     validation: {},
+    layout: {
+      x: 0,
+      y: nextY,
+      w: 12, // Full width by default
+      h: height,
+    },
   };
 
   switch (type) {

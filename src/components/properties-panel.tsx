@@ -15,12 +15,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+
 import {
   useFormBuilderStore,
   selectSelectedComponent,
@@ -155,6 +156,71 @@ export function PropertiesPanel() {
             <p className="text-xs text-muted-foreground">
               Must be a valid JavaScript identifier (no spaces, special
               characters, or reserved keywords)
+            </p>
+          </div>
+
+          {/* Layout Controls */}
+          <div className="space-y-2">
+            <Label htmlFor="layout-width">Width (columns)</Label>
+            <Input
+              id="layout-width"
+              type="number"
+              min="2"
+              max="12"
+              value={selectedComponent.layout?.w ?? 12}
+              onChange={(e) => {
+                const w = Math.max(
+                  2,
+                  Math.min(12, parseInt(e.target.value) || 12)
+                );
+                const currentLayout = selectedComponent.layout || {
+                  x: 0,
+                  y: 0,
+                  w: 12,
+                  h: 1,
+                };
+                handleUpdate({
+                  layout: {
+                    ...currentLayout,
+                    w,
+                  },
+                });
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              Width in columns (2-12). 12 = full width
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="layout-height">Height (rows)</Label>
+            <Input
+              id="layout-height"
+              type="number"
+              min="1"
+              max="10"
+              value={selectedComponent.layout?.h ?? 1}
+              onChange={(e) => {
+                const h = Math.max(
+                  1,
+                  Math.min(10, parseInt(e.target.value) || 1)
+                );
+                const currentLayout = selectedComponent.layout || {
+                  x: 0,
+                  y: 0,
+                  w: 12,
+                  h: 1,
+                };
+                handleUpdate({
+                  layout: {
+                    ...currentLayout,
+                    h,
+                  },
+                });
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              Height in rows (1-10). Each row is ~60px
             </p>
           </div>
 

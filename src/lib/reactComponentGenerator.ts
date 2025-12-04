@@ -107,15 +107,11 @@ function generateComponentBody(
 ): string {
   const zodSchema = generateInlineZodSchema(components);
   const defaultValues = generateInlineDefaultValues(components);
-  const fields = components
-    .map((component) => generateFormFieldJSX(component))
-    .join("\n\n");
 
   const showSubmit = settings?.showSubmitButton !== false;
   const showCancel = settings?.showCancelButton === true;
   const submitText = settings?.submitButtonText || "Submit";
   const cancelText = settings?.cancelButtonText || "Cancel";
-  const layout = settings?.layout || "single";
 
   let buttons = "";
   if (showSubmit || showCancel) {
@@ -133,14 +129,61 @@ function generateComponentBody(
     )}\n        </div>`;
   }
 
-  const layoutClass =
-    layout === "two-column" ? "grid grid-cols-1 md:grid-cols-2 gap-3" : "";
-  const fieldsContainer = layoutClass
-    ? `<div className="${layoutClass}">\n${indentLines(
-        fields,
-        10
-      )}\n        </div>`
-    : indentLines(fields, 8);
+  // Sort components by layout position (top to bottom, left to right)
+  const sortedComponents = [...components].sort((a, b) => {
+    const aLayout = a.layout || { x: 0, y: 0, w: 12, h: 1 };
+    const bLayout = b.layout || { x: 0, y: 0, w: 12, h: 1 };
+
+    // Sort by row first, then by column
+    if (aLayout.y !== bLayout.y) {
+      return aLayout.y - bLayout.y;
+    }
+    return aLayout.x - bLayout.x;
+  });
+
+  // Group components by row
+  const rows: FormComponent[][] = [];
+  sortedComponents.forEach((component) => {
+    const layout = component.layout || { x: 0, y: 0, w: 12, h: 1 };
+    const rowIndex = layout.y;
+
+    if (!rows[rowIndex]) {
+      rows[rowIndex] = [];
+    }
+    rows[rowIndex].push(component);
+  });
+
+  // Generate fields with grid layout
+  const fieldsWithLayout = rows
+    .filter((row) => row.length > 0)
+    .map((row) => {
+      if (row.length === 1 && (row[0].layout?.w ?? 12) === 12) {
+        // Full width component - no grid wrapper needed
+        const fieldJSX = generateFormFieldJSX(row[0]);
+        return indentLines(fieldJSX, 8);
+      } else {
+        // Multiple components in row or partial width - use grid
+        const rowFields = row
+          .map((component) => {
+            const layout = component.layout || { x: 0, y: 0, w: 12, h: 1 };
+            const colSpan = `md:col-span-${layout.w}`;
+            const fieldJSX = generateFormFieldJSX(component);
+            return `<div className="${colSpan}">\n${indentLines(
+              fieldJSX,
+              10
+            )}\n        </div>`;
+          })
+          .join("\n");
+
+        return `<div className="grid grid-cols-1 md:grid-cols-12 gap-4">\n${indentLines(
+          rowFields,
+          10
+        )}\n        </div>`;
+      }
+    })
+    .join("\n\n");
+
+  const fieldsContainer = `<div className="space-y-4">\n${fieldsWithLayout}\n        </div>`;
 
   return `const ${schemaName} = ${zodSchema};
 
