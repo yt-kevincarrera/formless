@@ -1,12 +1,12 @@
-import { Moon, Sun } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useFormBuilderStore } from "@/store/formBuilderStore";
 import { CodeSnippetsLibrary } from "@/components/code-snippets-library";
 import { ExportDialog } from "@/components/export-dialog";
+import { FormSettingsDialog } from "@/components/form-settings-dialog";
 import { ImportDialog } from "@/components/import-dialog";
 import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog";
-import { FormSettingsDialog } from "@/components/form-settings-dialog";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useFormBuilderStore } from "@/store/formBuilderStore";
+import { Moon, Sun } from "lucide-react";
 
 export function Header() {
   const theme = useFormBuilderStore((state) => state.theme);
@@ -20,7 +20,7 @@ export function Header() {
     <header className="border-b border-border bg-card px-6 py-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-card-foreground">Formless</h1>
+          <img src="/header.webp" alt="Formless" className="w-auto h-12" />
           <p className="text-sm text-muted-foreground">Visual Form Builder</p>
         </div>
         <div className="flex items-center gap-4">
