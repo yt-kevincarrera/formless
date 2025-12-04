@@ -27,7 +27,7 @@ import {
 } from "@/lib/zodSchemaGenerator";
 import { toast } from "sonner";
 import GridLayout, { type Layout } from "react-grid-layout";
-import { Trash2 } from "lucide-react";
+import { Trash2, Undo2, Redo2 } from "lucide-react";
 import "react-grid-layout/css/styles.css";
 
 interface GridComponentProps {
@@ -128,6 +128,10 @@ export function Canvas() {
   const removeComponent = useFormBuilderStore((state) => state.removeComponent);
   const updateComponent = useFormBuilderStore((state) => state.updateComponent);
   const clearAll = useFormBuilderStore((state) => state.clearAll);
+  const undo = useFormBuilderStore((state) => state.undo);
+  const redo = useFormBuilderStore((state) => state.redo);
+  const canUndo = useFormBuilderStore((state) => state.canUndo);
+  const canRedo = useFormBuilderStore((state) => state.canRedo);
 
   const gridContainerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
@@ -214,6 +218,23 @@ export function Canvas() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Undo: Ctrl+Z (Cmd+Z on Mac)
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        if (canUndo) undo();
+        return;
+      }
+
+      // Redo: Ctrl+Y or Ctrl+Shift+Z (Cmd+Shift+Z on Mac)
+      if (
+        ((e.ctrlKey || e.metaKey) && e.key === "y") ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "z")
+      ) {
+        e.preventDefault();
+        if (canRedo) redo();
+        return;
+      }
+
       // Delete or Backspace to delete selected component
       if (
         (e.key === "Delete" || e.key === "Backspace") &&
@@ -238,7 +259,15 @@ export function Canvas() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedComponentId, removeComponent, selectComponent]);
+  }, [
+    selectedComponentId,
+    removeComponent,
+    selectComponent,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  ]);
 
   // Generate Zod schema and default values from components
   const schema = useMemo(() => {
@@ -298,23 +327,52 @@ export function Canvas() {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-foreground">Canvas</h2>
-          {components.length > 0 && (
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={() => setShowClearDialog(true)}
-              title={`Remove all ${components.length} component${
-                components.length === 1 ? "" : "s"
-              }`}
-              aria-label={`Remove all ${components.length} component${
-                components.length === 1 ? "" : "s"
-              } from canvas`}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clear All ({components.length})
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Undo/Redo buttons */}
+            <div className="flex items-center gap-1 border-r pr-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={undo}
+                disabled={!canUndo}
+                title="Undo (Ctrl+Z)"
+                aria-label="Undo last action"
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={redo}
+                disabled={!canRedo}
+                title="Redo (Ctrl+Y)"
+                aria-label="Redo last undone action"
+              >
+                <Redo2 className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Clear All button */}
+            {components.length > 0 && (
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowClearDialog(true)}
+                title={`Remove all ${components.length} component${
+                  components.length === 1 ? "" : "s"
+                }`}
+                aria-label={`Remove all ${components.length} component${
+                  components.length === 1 ? "" : "s"
+                } from canvas`}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clear All ({components.length})
+              </Button>
+            )}
+          </div>
         </div>
         <form onSubmit={control.handleSubmit(handleSubmit)}>
           <Card

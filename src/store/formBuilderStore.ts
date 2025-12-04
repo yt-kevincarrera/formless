@@ -7,11 +7,20 @@ import type {
   FormSettings,
 } from "../types/form";
 
+interface HistoryState {
+  components: FormComponent[];
+  settings: FormSettings;
+}
+
 interface FormBuilderStore {
   // Form state
   components: FormComponent[];
   selectedComponentId: string | null;
   settings: FormSettings;
+
+  // History for undo/redo
+  past: HistoryState[];
+  future: HistoryState[];
 
   // UI state
   theme: "light" | "dark";
@@ -25,6 +34,12 @@ interface FormBuilderStore {
   setTheme: (theme: "light" | "dark") => void;
   updateSettings: (updates: Partial<FormSettings>) => void;
   clearAll: () => void;
+
+  // Undo/Redo
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 
   // Import/Export
   exportSchema: () => string;
@@ -265,191 +280,265 @@ const getDefaultComponent = (
 
 export const useFormBuilderStore = create<FormBuilderStore>()(
   persist(
-    (set, get) => ({
-      // Initial state
-      components: [],
-      selectedComponentId: null,
-      theme: "light",
-      settings: {
-        showSubmitButton: true,
-        showCancelButton: false,
-        submitButtonText: "Submit",
-        cancelButtonText: "Cancel",
-        layout: "single",
-      },
-
-      // Actions
-      addComponent: (type: ComponentType, position: number) => {
-        set((state) => {
-          const newComponent = getDefaultComponent(type, state.components);
-          const newComponents = [...state.components];
-          newComponents.splice(position, 0, newComponent);
-          return {
-            components: newComponents,
-            selectedComponentId: newComponent.id,
-          };
-        });
-      },
-
-      removeComponent: (id: string) => {
-        set((state) => ({
-          components: state.components.filter((c) => c.id !== id),
-          selectedComponentId:
-            state.selectedComponentId === id ? null : state.selectedComponentId,
-        }));
-      },
-
-      updateComponent: (id: string, updates: Partial<FormComponent>) => {
-        // Validate component name if being updated
-        if (updates.name !== undefined) {
-          if (!updates.name.trim()) {
-            throw new Error("Component name cannot be empty");
-          }
-
-          if (!isValidComponentName(updates.name)) {
-            throw new Error(
-              "Invalid component name. Must be a valid JavaScript identifier (start with letter/underscore, no spaces or special characters, not a reserved keyword)"
-            );
-          }
-
-          // Check for duplicate names
-          const state = get();
-          const isDuplicate = state.components.some(
-            (c) => c.id !== id && c.name === updates.name
-          );
-
-          if (isDuplicate) {
-            throw new Error(
-              `Component name "${updates.name}" is already in use. Please choose a unique name.`
-            );
-          }
-        }
-
-        // Validate regex pattern if being updated
-        if (
-          updates.validation?.pattern !== undefined &&
-          updates.validation.pattern !== ""
-        ) {
-          if (!isValidRegex(updates.validation.pattern)) {
-            throw new Error(
-              "Invalid regex pattern. Please check your regular expression syntax."
-            );
-          }
-        }
-
-        // Validate option values for select/radio components
-        if (updates.options !== undefined && updates.options.length > 0) {
-          const values = updates.options.map((opt) => opt.value);
-          const uniqueValues = new Set(values);
-
-          if (values.length !== uniqueValues.size) {
-            throw new Error(
-              "Duplicate option values detected. Each option must have a unique value."
-            );
-          }
-
-          // Check for empty values
-          if (values.some((v) => !v.trim())) {
-            throw new Error("Option values cannot be empty.");
-          }
-        }
-
-        set((state) => ({
-          components: state.components.map((c) =>
-            c.id === id ? { ...c, ...updates } : c
-          ),
-        }));
-      },
-
-      reorderComponents: (startIndex: number, endIndex: number) => {
-        set((state) => {
-          const newComponents = [...state.components];
-          const [removed] = newComponents.splice(startIndex, 1);
-          newComponents.splice(endIndex, 0, removed);
-          return { components: newComponents };
-        });
-      },
-
-      selectComponent: (id: string | null) => {
-        set({ selectedComponentId: id });
-      },
-
-      setTheme: (theme: "light" | "dark") => {
-        set({ theme });
-      },
-
-      updateSettings: (updates: Partial<FormSettings>) => {
-        set((state) => ({
-          settings: { ...state.settings, ...updates },
-        }));
-      },
-
-      // Import/Export
-      exportSchema: () => {
+    (set, get) => {
+      // Helper to save current state to history before making changes
+      const saveToHistory = () => {
         const state = get();
-        const schema: FormSchema = {
-          version: "1.0.0",
+        const currentState: HistoryState = {
           components: state.components,
           settings: state.settings,
-          metadata: {
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
         };
-        return JSON.stringify(schema, null, 2);
-      },
 
-      importSchema: (json: string) => {
-        try {
-          const schema: FormSchema = JSON.parse(json);
+        set({
+          past: [...state.past, currentState],
+          future: [], // Clear future when new action is performed
+        });
+      };
 
-          // Validate schema structure
-          if (!schema.components || !Array.isArray(schema.components)) {
-            throw new Error(
-              "Invalid schema: missing or invalid components array"
-            );
-          }
+      return {
+        // Initial state
+        components: [],
+        selectedComponentId: null,
+        theme: "light",
+        settings: {
+          showSubmitButton: true,
+          showCancelButton: false,
+          submitButtonText: "Submit",
+          cancelButtonText: "Cancel",
+          layout: "single",
+        },
 
-          // Validate each component has required fields
-          for (const component of schema.components) {
-            if (!component.id || !component.type || !component.name) {
+        // History
+        past: [],
+        future: [],
+        canUndo: false,
+        canRedo: false,
+
+        // Actions
+        addComponent: (type: ComponentType, position: number) => {
+          saveToHistory();
+          set((state) => {
+            const newComponent = getDefaultComponent(type, state.components);
+            const newComponents = [...state.components];
+            newComponents.splice(position, 0, newComponent);
+            return {
+              components: newComponents,
+              selectedComponentId: newComponent.id,
+              canUndo: true,
+            };
+          });
+        },
+
+        removeComponent: (id: string) => {
+          saveToHistory();
+          set((state) => ({
+            components: state.components.filter((c) => c.id !== id),
+            selectedComponentId:
+              state.selectedComponentId === id
+                ? null
+                : state.selectedComponentId,
+            canUndo: true,
+          }));
+        },
+
+        updateComponent: (id: string, updates: Partial<FormComponent>) => {
+          // Validate component name if being updated
+          if (updates.name !== undefined) {
+            if (!updates.name.trim()) {
+              throw new Error("Component name cannot be empty");
+            }
+
+            if (!isValidComponentName(updates.name)) {
               throw new Error(
-                "Invalid schema: component missing required fields (id, type, name)"
+                "Invalid component name. Must be a valid JavaScript identifier (start with letter/underscore, no spaces or special characters, not a reserved keyword)"
+              );
+            }
+
+            // Check for duplicate names
+            const state = get();
+            const isDuplicate = state.components.some(
+              (c) => c.id !== id && c.name === updates.name
+            );
+
+            if (isDuplicate) {
+              throw new Error(
+                `Component name "${updates.name}" is already in use. Please choose a unique name.`
               );
             }
           }
 
-          set({
-            components: schema.components,
-            settings: schema.settings || {
-              showSubmitButton: true,
-              showCancelButton: false,
-              submitButtonText: "Submit",
-              cancelButtonText: "Cancel",
-              layout: "single",
+          // Validate regex pattern if being updated
+          if (
+            updates.validation?.pattern !== undefined &&
+            updates.validation.pattern !== ""
+          ) {
+            if (!isValidRegex(updates.validation.pattern)) {
+              throw new Error(
+                "Invalid regex pattern. Please check your regular expression syntax."
+              );
+            }
+          }
+
+          // Validate option values for select/radio components
+          if (updates.options !== undefined && updates.options.length > 0) {
+            const values = updates.options.map((opt) => opt.value);
+            const uniqueValues = new Set(values);
+
+            if (values.length !== uniqueValues.size) {
+              throw new Error(
+                "Duplicate option values detected. Each option must have a unique value."
+              );
+            }
+
+            // Check for empty values
+            if (values.some((v) => !v.trim())) {
+              throw new Error("Option values cannot be empty.");
+            }
+          }
+
+          saveToHistory();
+          set((state) => ({
+            components: state.components.map((c) =>
+              c.id === id ? { ...c, ...updates } : c
+            ),
+            canUndo: true,
+          }));
+        },
+
+        reorderComponents: (startIndex: number, endIndex: number) => {
+          saveToHistory();
+          set((state) => {
+            const newComponents = [...state.components];
+            const [removed] = newComponents.splice(startIndex, 1);
+            newComponents.splice(endIndex, 0, removed);
+            return { components: newComponents, canUndo: true };
+          });
+        },
+
+        selectComponent: (id: string | null) => {
+          set({ selectedComponentId: id });
+        },
+
+        setTheme: (theme: "light" | "dark") => {
+          set({ theme });
+        },
+
+        updateSettings: (updates: Partial<FormSettings>) => {
+          set((state) => ({
+            settings: { ...state.settings, ...updates },
+          }));
+        },
+
+        // Import/Export
+        exportSchema: () => {
+          const state = get();
+          const schema: FormSchema = {
+            version: "1.0.0",
+            components: state.components,
+            settings: state.settings,
+            metadata: {
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
             },
+          };
+          return JSON.stringify(schema, null, 2);
+        },
+
+        importSchema: (json: string) => {
+          try {
+            const schema: FormSchema = JSON.parse(json);
+
+            // Validate schema structure
+            if (!schema.components || !Array.isArray(schema.components)) {
+              throw new Error(
+                "Invalid schema: missing or invalid components array"
+              );
+            }
+
+            // Validate each component has required fields
+            for (const component of schema.components) {
+              if (!component.id || !component.type || !component.name) {
+                throw new Error(
+                  "Invalid schema: component missing required fields (id, type, name)"
+                );
+              }
+            }
+
+            set({
+              components: schema.components,
+              settings: schema.settings || {
+                showSubmitButton: true,
+                showCancelButton: false,
+                submitButtonText: "Submit",
+                cancelButtonText: "Cancel",
+                layout: "single",
+              },
+              selectedComponentId: null,
+            });
+          } catch (error) {
+            console.error("Failed to import schema:", error);
+            throw error;
+          }
+        },
+
+        // Undo/Redo
+        undo: () => {
+          const state = get();
+          if (state.past.length === 0) return;
+
+          const previous = state.past[state.past.length - 1];
+          const newPast = state.past.slice(0, state.past.length - 1);
+
+          set({
+            past: newPast,
+            future: [
+              { components: state.components, settings: state.settings },
+              ...state.future,
+            ],
+            components: previous.components,
+            settings: previous.settings,
+            canUndo: newPast.length > 0,
+            canRedo: true,
+          });
+        },
+
+        redo: () => {
+          const state = get();
+          if (state.future.length === 0) return;
+
+          const next = state.future[0];
+          const newFuture = state.future.slice(1);
+
+          set({
+            past: [
+              ...state.past,
+              { components: state.components, settings: state.settings },
+            ],
+            future: newFuture,
+            components: next.components,
+            settings: next.settings,
+            canUndo: true,
+            canRedo: newFuture.length > 0,
+          });
+        },
+
+        clearAll: () => {
+          saveToHistory();
+          set({
+            components: [],
+            selectedComponentId: null,
+            canUndo: true,
+          });
+        },
+
+        reset: () => {
+          set({
+            components: [],
             selectedComponentId: null,
           });
-        } catch (error) {
-          console.error("Failed to import schema:", error);
-          throw error;
-        }
-      },
-
-      clearAll: () => {
-        set({
-          components: [],
-          selectedComponentId: null,
-        });
-      },
-
-      reset: () => {
-        set({
-          components: [],
-          selectedComponentId: null,
-        });
-      },
-    }),
+        },
+      };
+    },
     {
       name: "formless-storage",
       partialize: (state) => ({
