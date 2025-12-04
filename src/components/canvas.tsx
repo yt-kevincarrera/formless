@@ -218,14 +218,12 @@ export function Canvas() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Undo: Ctrl+Z (Cmd+Z on Mac)
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         if (canUndo) undo();
         return;
       }
 
-      // Redo: Ctrl+Y or Ctrl+Shift+Z (Cmd+Shift+Z on Mac)
       if (
         ((e.ctrlKey || e.metaKey) && e.key === "y") ||
         ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "z")
@@ -235,7 +233,6 @@ export function Canvas() {
         return;
       }
 
-      // Delete or Backspace to delete selected component
       if (
         (e.key === "Delete" || e.key === "Backspace") &&
         selectedComponentId
@@ -250,7 +247,6 @@ export function Canvas() {
         removeComponent(selectedComponentId);
       }
 
-      // Escape to deselect
       if (e.key === "Escape" && selectedComponentId) {
         e.preventDefault();
         selectComponent(null);

@@ -16,12 +16,10 @@ export function KeyboardShortcutsDialog() {
   const shortcuts = [
     {
       category: "General",
-      items: [
-        { keys: ["Ctrl/Cmd", "S"], description: "Save form (export schema)" },
-        { keys: ["Ctrl/Cmd", "Z"], description: "Undo (browser default)" },
+      items: [        { keys: ["Ctrl/Cmd", "Z"], description: "Undo" },
         {
           keys: ["Ctrl/Cmd", "Shift", "Z"],
-          description: "Redo (browser default)",
+          description: "Redo",
         },
         { keys: ["?"], description: "Show keyboard shortcuts" },
       ],
