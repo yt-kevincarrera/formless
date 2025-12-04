@@ -1,15 +1,8 @@
-import { Header } from "@/components/header";
-import { ComponentLibrary } from "@/components/component-library";
 import { Canvas } from "@/components/canvas";
-import { PropertiesPanel } from "@/components/properties-panel";
 import { CodeDisplay } from "@/components/code-display";
-import { Toaster } from "@/components/ui/sonner";
-import {
-  useFormBuilderStore,
-  selectSelectedComponentId,
-  selectComponents,
-} from "@/store/formBuilderStore";
-import { useEffect, useState } from "react";
+import { ComponentLibrary } from "@/components/component-library";
+import { Header } from "@/components/header";
+import { PropertiesPanel } from "@/components/properties-panel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +13,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Toaster } from "@/components/ui/sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  selectComponents,
+  selectSelectedComponentId,
+  useFormBuilderStore,
+} from "@/store/formBuilderStore";
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import {
   DndContext,
   DragOverlay,
@@ -27,8 +28,7 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useEffect, useState } from "react";
 
 function App() {
   const selectedComponentId = useFormBuilderStore(selectSelectedComponentId);
@@ -147,10 +147,14 @@ function App() {
           <Canvas />
           <div className="h-full overflow-hidden">
             <Tabs defaultValue="properties" className="h-full flex flex-col">
-              <div className="px-4 pt-4 border-l border-border bg-sidebar">
+              <div className="px-4 pt-4">
                 <TabsList className="w-full grid grid-cols-2">
-                  <TabsTrigger value="properties">Properties</TabsTrigger>
-                  <TabsTrigger value="code">Code</TabsTrigger>
+                  <TabsTrigger value="properties" className="cursor-pointer">
+                    Properties
+                  </TabsTrigger>
+                  <TabsTrigger value="code" className="cursor-pointer">
+                    Code
+                  </TabsTrigger>
                 </TabsList>
               </div>
               <TabsContent

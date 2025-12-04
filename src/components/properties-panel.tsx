@@ -1,8 +1,3 @@
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -15,23 +10,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-
+import { cn } from "@/lib/utils";
 import {
-  useFormBuilderStore,
   selectSelectedComponent,
+  useFormBuilderStore,
 } from "@/store/formBuilderStore";
 import type { FormComponent, Option } from "@/types/form";
-import { Trash2, Plus, X, AlertCircle, CalendarIcon } from "lucide-react";
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { AlertCircle, CalendarIcon, Plus, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export function PropertiesPanel() {
   const selectedComponent = useFormBuilderStore(selectSelectedComponent);
@@ -83,15 +82,19 @@ export function PropertiesPanel() {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-4 bg-sidebar">
+    <div className="h-full overflow-y-auto p-4 bg-sidebar rounded-lg">
       <div className="flex items-center justify-between mb-4">
         <AlertDialog
           open={isDeleteDialogOpen}
           onOpenChange={setIsDeleteDialogOpen}
         >
           <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm" className="h-8">
-              <Trash2 className="h-4 w-4 mr-1" />
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-8 cursor-pointer"
+            >
+              <Trash2 className="size-4 mr-1" />
               Delete
             </Button>
           </AlertDialogTrigger>
@@ -104,8 +107,13 @@ export function PropertiesPanel() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete}>
+              <AlertDialogCancel className="cursor-pointer">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="cursor-pointer"
+                onClick={handleDelete}
+              >
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
