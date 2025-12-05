@@ -75,8 +75,8 @@ export function generateStandaloneScript(files: FileData[]): string {
 // Formless Generated Form Installer
 // Save this file as 'install-form.js' and run: node install-form.js
 
-const fs = require('fs');
-const path = require('path');
+import { mkdirSync, writeFileSync } from "fs";
+import { dirname } from "path";
 
 const files = ${filesJson};
 
