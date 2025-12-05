@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useFormBuilderStore } from "./formBuilderStore";
+import { useFormBuilderStore } from "../store/formBuilderStore";
 
 describe("FormBuilderStore", () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateRHFSetup } from "./rhfSetupGenerator";
+import { generateRHFSetup } from "../lib/rhfSetupGenerator";
 import type { FormComponent } from "../types/form";
 
 describe("generateRHFSetup", () => {
