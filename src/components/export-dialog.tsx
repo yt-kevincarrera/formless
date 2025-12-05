@@ -36,16 +36,13 @@ export function ExportDialog() {
   const schemaCode = generateZodSchemaCode(components);
   const setupCode = generateRHFSetup(components);
 
-  // Generate CLI commands
-  const files = [
+  // Generate CLI commands - only for generated-form
+  const cliFiles = [
     { path: "src/components/generated-form.tsx", content: componentCode },
-    { path: "src/lib/schema.ts", content: schemaCode },
-    { path: "src/lib/setup.ts", content: setupCode },
   ];
 
-  const bashCommand = generateCLICommand(files);
-  const powershellCommand = generatePowerShellCommand(files);
-  const standaloneScript = generateStandaloneScript(files);
+  const bashCommand = generateCLICommand(cliFiles);
+  const standaloneScript = generateStandaloneScript(cliFiles);
   const isTooLong = isCommandTooLong(bashCommand);
 
   /**
@@ -302,37 +299,13 @@ export function ExportDialog() {
               )}
             </div>
 
-            {/* PowerShell Command */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium">PowerShell (Windows)</h4>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() =>
-                    handleCopyCLICommand(powershellCommand, "PowerShell")
-                  }
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy
-                </Button>
-              </div>
-              <div className="relative">
-                <pre className="p-3 bg-muted rounded-md text-xs overflow-auto max-h-48 whitespace-pre-wrap break-all">
-                  <code>{powershellCommand}</code>
-                </pre>
-              </div>
-            </div>
-
             <div className="pt-2 border-t">
               <p className="text-xs text-muted-foreground">
                 ⚠️ Make sure you're in your project directory before running
-                these commands. They will create files in:
+                this command. It will create the file:
               </p>
               <ul className="text-xs text-muted-foreground mt-2 space-y-1 ml-4">
                 <li>• src/components/generated-form.tsx</li>
-                <li>• src/lib/schema.ts</li>
-                <li>• src/lib/setup.ts</li>
               </ul>
             </div>
           </TabsContent>
