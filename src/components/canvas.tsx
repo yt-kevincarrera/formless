@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import GridLayout, { type Layout } from "react-grid-layout";
 import { Trash2, Undo2, Redo2 } from "lucide-react";
 import "react-grid-layout/css/styles.css";
+import { PreviewDialog } from "./preview-dialog";
 
 interface GridComponentProps {
   component: FormComponent;
@@ -348,6 +349,7 @@ export function Canvas() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-foreground">Canvas</h2>
           <div className="flex items-center gap-2">
+            <PreviewDialog />
             {/* Undo/Redo buttons */}
             <div className="flex items-center gap-1 border-r pr-2">
               <Button
