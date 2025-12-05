@@ -59,6 +59,7 @@ function generateFieldSchema(component: FormComponent): z.ZodTypeAny {
   // Map component type to Zod type
   switch (component.type) {
     case "input":
+    case "password":
     case "textarea":
       return generateStringSchema(component);
     case "select":
@@ -86,6 +87,7 @@ function generateFieldSchemaCode(component: FormComponent): string {
   // Map component type to Zod type
   switch (component.type) {
     case "input":
+    case "password":
     case "textarea":
       return generateStringSchemaCode(component);
     case "select":
@@ -450,8 +452,7 @@ function generateNumberSchemaCode(component: FormComponent): string {
  * Generate date schema (runtime)
  */
 function generateDateSchema(component: FormComponent): z.ZodTypeAny {
-  // Use coerce to convert string to date (HTML date inputs return strings)
-  let schema: z.ZodTypeAny = z.coerce.date();
+  let schema: z.ZodTypeAny = z.date();
 
   const { validation } = component;
 
@@ -482,7 +483,7 @@ function generateDateSchema(component: FormComponent): z.ZodTypeAny {
  * Generate date schema code
  */
 function generateDateSchemaCode(component: FormComponent): string {
-  const parts: string[] = ["z.coerce.date()"];
+  const parts: string[] = ["z.date()"];
   const { validation } = component;
 
   // Add date range validations if specified
@@ -596,6 +597,7 @@ export function generateDefaultValues(
       // Provide sensible defaults based on type
       switch (component.type) {
         case "input":
+        case "password":
         case "textarea":
         case "select":
         case "radio":

@@ -4,6 +4,7 @@
 
 export type ComponentType =
   | "input"
+  | "password"
   | "textarea"
   | "select"
   | "checkbox"

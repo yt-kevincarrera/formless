@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import type { ComponentType } from "@/types/form";
 import {
   Type,
+  KeyRound,
   AlignLeft,
   ChevronDown,
   CheckSquare,
@@ -26,6 +27,12 @@ const COMPONENT_LIBRARY: ComponentLibraryItem[] = [
     icon: <Type className="w-5 h-5" />,
     label: "Text Input",
     description: "Single line text",
+  },
+  {
+    type: "password",
+    icon: <KeyRound className="w-5 h-5" />,
+    label: "Password",
+    description: "Password input",
   },
   {
     type: "textarea",

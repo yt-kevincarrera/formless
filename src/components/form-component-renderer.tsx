@@ -72,6 +72,22 @@ export function FormComponentRenderer({
           />
         );
 
+      case "password":
+        return (
+          <Controller
+            name={component.name}
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="password"
+                placeholder={component.placeholder}
+                className={error ? "border-destructive" : ""}
+              />
+            )}
+          />
+        );
+
       case "textarea":
         return (
           <Controller
@@ -326,6 +342,16 @@ function StaticComponentPreview({
       case "input":
         return (
           <Input
+            placeholder={component.placeholder}
+            defaultValue={component.defaultValue}
+            disabled
+          />
+        );
+
+      case "password":
+        return (
+          <Input
+            type="password"
             placeholder={component.placeholder}
             defaultValue={component.defaultValue}
             disabled
