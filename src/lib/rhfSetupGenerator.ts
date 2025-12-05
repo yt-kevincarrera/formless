@@ -82,6 +82,7 @@ function generateDefaultValuesObject(components: FormComponent[]): string {
       // Use the configured default value
       switch (component.type) {
         case "input":
+        case "password":
         case "textarea":
         case "select":
         case "radio":
@@ -107,6 +108,7 @@ function generateDefaultValuesObject(components: FormComponent[]): string {
       // Provide sensible defaults based on type
       switch (component.type) {
         case "input":
+        case "password":
         case "textarea":
         case "select":
         case "radio":
@@ -180,6 +182,26 @@ function generateFieldExample(component: FormComponent): string {
     render={({ field }) => (
       <Input
         id="${component.name}"
+        placeholder="${placeholder}"
+        {...field}
+        aria-invalid={!!form.formState.errors.${component.name}}
+      />
+    )}
+  />
+  <FieldError errors={[form.formState.errors.${component.name}]} />
+</Field>`;
+
+    case "password":
+      return `// ${component.label} (${component.type})
+<Field>
+  <FieldLabel htmlFor="${component.name}">${component.label}</FieldLabel>
+  <Controller
+    name="${component.name}"
+    control={form.control}
+    render={({ field }) => (
+      <Input
+        id="${component.name}"
+        type="password"
         placeholder="${placeholder}"
         {...field}
         aria-invalid={!!form.formState.errors.${component.name}}

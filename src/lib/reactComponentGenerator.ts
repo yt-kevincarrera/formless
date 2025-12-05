@@ -47,13 +47,14 @@ function generateImports(components: FormComponent[]): string {
   imports.add('import * as z from "zod";');
   imports.add('import { Button } from "@/components/ui/button";');
   imports.add(
-    'import { Field, FieldLabel, FieldDescription, FieldError, FieldGroup } from "@/components/ui/field";'
+    'import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";'
   );
 
   // Determine which shadcn/ui components are needed
   for (const component of components) {
     switch (component.type) {
       case "input":
+      case "password":
         imports.add('import { Input } from "@/components/ui/input";');
         break;
       case "textarea":
@@ -162,9 +163,9 @@ function generateComponentBody(
         `<Button type="button" variant="outline">${cancelText}</Button>`
       );
     }
-    buttons = `\n        <div className="flex gap-3">\n          ${buttonElements.join(
-      "\n          "
-    )}\n        </div>`;
+    buttons = `\n      <div className="flex gap-3">\n        ${buttonElements.join(
+      "\n        "
+    )}\n      </div>`;
   }
 
   // Sort components by layout position (top to bottom, left to right)
@@ -217,7 +218,7 @@ function generateComponentBody(
       if (row.length === 1 && (row[0].layout?.w ?? 12) === 12) {
         // Full width component - no grid wrapper needed
         const fieldJSX = generateFormFieldJSX(row[0]);
-        return indentLines(fieldJSX, 8);
+        return indentLines(fieldJSX, 4);
       } else {
         // Multiple components in row or partial width - use grid
         const rowFields = row
@@ -227,20 +228,20 @@ function generateComponentBody(
             const fieldJSX = generateFormFieldJSX(component);
             return `<div className="${colSpan}">\n${indentLines(
               fieldJSX,
-              10
-            )}\n        </div>`;
+              6
+            )}\n      </div>`;
           })
           .join("\n");
 
         return `<div className="grid grid-cols-1 md:grid-cols-12 gap-4">\n${indentLines(
           rowFields,
-          10
-        )}\n        </div>`;
+          6
+        )}\n      </div>`;
       }
     })
     .join("\n\n");
 
-  const fieldsContainer = `<div className="${getSpacingClass()}">\n${fieldsWithLayout}\n        </div>`;
+  const fieldsContainer = `<div className="${getSpacingClass()}">\n${fieldsWithLayout}\n      </div>`;
 
   const onSubmitCode = resetOnSubmit
     ? `  function onSubmit(values: z.infer<typeof ${schemaName}>) {
@@ -275,7 +276,7 @@ ${onSubmitCode}
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="w-full ${getMaxWidthClass()} mx-auto p-6">
       <FieldGroup>
-${fieldsContainer}${buttons}
+      ${fieldsContainer}${buttons}
       </FieldGroup>
     </form>
   );
@@ -293,6 +294,7 @@ function generateInlineZodSchema(components: FormComponent[]): string {
 
     switch (component.type) {
       case "input":
+      case "password":
       case "textarea":
         // Use specific validators for email/URL
         if (component.validation.email) {
@@ -335,7 +337,7 @@ function generateInlineZodSchema(components: FormComponent[]): string {
         }
         break;
       case "date":
-        schema = "z.coerce.date()";
+        schema = "z.date()";
         if (component.validation.minDate) {
           schema += `.min(new Date("${component.validation.minDate}"))`;
         }
@@ -384,6 +386,11 @@ function generateInlineDefaultValues(components: FormComponent[]): string {
       case "file":
         value = "undefined";
         break;
+      case "input":
+      case "password":
+      case "textarea":
+      case "select":
+      case "radio":
       default:
         value = component.defaultValue ? `"${component.defaultValue}"` : '""';
     }
@@ -401,6 +408,8 @@ function generateFormFieldJSX(component: FormComponent): string {
   switch (component.type) {
     case "input":
       return generateInputFormField(component);
+    case "password":
+      return generatePasswordFormField(component);
     case "textarea":
       return generateTextareaFormField(component);
     case "select":
@@ -445,6 +454,31 @@ function generateInputFormField(component: FormComponent): string {
       <Input
         id="${component.name}"
         type="${inputType}"
+        placeholder="${placeholder}"
+        {...field}
+        aria-invalid={!!form.formState.errors.${component.name}}
+      />
+    )}
+  />
+  <FieldError errors={[form.formState.errors.${component.name}]} />
+</Field>`;
+}
+
+/**
+ * Generate Field for password component using Controller
+ */
+function generatePasswordFormField(component: FormComponent): string {
+  const placeholder = component.placeholder || "";
+
+  return `<Field>
+  <FieldLabel htmlFor="${component.name}">${component.label}</FieldLabel>
+  <Controller
+    name="${component.name}"
+    control={form.control}
+    render={({ field }) => (
+      <Input
+        id="${component.name}"
+        type="password"
         placeholder="${placeholder}"
         {...field}
         aria-invalid={!!form.formState.errors.${component.name}}
@@ -607,7 +641,7 @@ function generateSliderFormField(component: FormComponent): string {
         min={${min}}
         max={${max}}
         step={${step}}
-        defaultValue={[field.value]}
+        defaultValue={[field.value ?? 0]}
         onValueChange={(vals) => field.onChange(vals[0])}
         aria-invalid={!!form.formState.errors.${component.name}}
       />

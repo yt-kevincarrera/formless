@@ -219,6 +219,12 @@ const getDefaultComponent = (
         placeholder: "Enter text...",
         defaultValue: "",
       };
+    case "password":
+      return {
+        ...baseComponent,
+        placeholder: "Enter password...",
+        defaultValue: "",
+      };
     case "textarea":
       return {
         ...baseComponent,
