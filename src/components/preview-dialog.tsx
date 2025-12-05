@@ -56,11 +56,11 @@ export function PreviewDialog() {
   };
 
   const formWidthClass = {
-    sm: "max-w-md",
-    md: "max-w-2xl",
-    lg: "max-w-4xl",
-    xl: "max-w-6xl",
-    full: "max-w-full",
+    sm: "sm:max-w-md",
+    md: "sm:max-w-2xl",
+    lg: "sm:max-w-4xl",
+    xl: "sm:max-w-6xl",
+    full: "sm:max-w-full",
   }[settings.formWidth || "md"];
 
   const spacingClass = {
@@ -164,7 +164,7 @@ export function PreviewDialog() {
         </Button>
       </DialogTrigger>
       <DialogContent
-        className={cn(formWidthClass, "max-h-[90vh] overflow-y-auto")}
+        className={cn("max-h-[90vh] overflow-y-auto", formWidthClass)}
       >
         <DialogHeader>
           <DialogTitle>{settings.formName || "Form Preview"}</DialogTitle>

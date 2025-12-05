@@ -532,7 +532,7 @@ function generateSelectFormField(component: FormComponent): string {
     control={form.control}
     render={({ field }) => (
       <Select onValueChange={field.onChange} defaultValue={field.value}>
-        <SelectTrigger id="${component.name}" aria-invalid={!!form.formState.errors.${component.name}}>
+        <SelectTrigger className="w-full" id="${component.name}" aria-invalid={!!form.formState.errors.${component.name}}>
           <SelectValue placeholder="Select an option" />
         </SelectTrigger>
         <SelectContent>
