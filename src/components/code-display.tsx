@@ -101,7 +101,7 @@ export function CodeDisplay() {
           <TabsList className="flex-1 grid grid-cols-3">
             <TabsTrigger value="component">Component</TabsTrigger>
             <TabsTrigger value="schema">Schema</TabsTrigger>
-            <TabsTrigger value="setup">Setup</TabsTrigger>
+            <TabsTrigger value="setup">Setup & Snippets</TabsTrigger>
           </TabsList>
           {!inDialog && (
             <Button
