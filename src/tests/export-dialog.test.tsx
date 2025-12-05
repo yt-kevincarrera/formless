@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { ExportDialog } from "./export-dialog";
+import { ExportDialog } from "../components/export-dialog";
 import { useFormBuilderStore } from "@/store/formBuilderStore";
 
 // Mock the store

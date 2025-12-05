@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { generateZodSchema, generateDefaultValues } from "./zodSchemaGenerator";
+import {
+  generateZodSchema,
+  generateDefaultValues,
+} from "../lib/zodSchemaGenerator";
 import type { FormComponent } from "@/types/form";
 
 describe("zodSchemaGenerator", () => {

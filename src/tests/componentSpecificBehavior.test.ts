@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { generateZodSchema } from "./zodSchemaGenerator";
-import { generateReactComponent } from "./reactComponentGenerator";
+import { generateZodSchema } from "../lib/zodSchemaGenerator";
+import { generateReactComponent } from "../lib/reactComponentGenerator";
 import type { FormComponent } from "../types/form";
 
 describe("Component-Specific Validation and Behavior", () => {

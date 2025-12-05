@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateReactComponent } from "./reactComponentGenerator";
+import { generateReactComponent } from "../lib/reactComponentGenerator";
 import type { FormComponent } from "../types/form";
 
 describe("generateReactComponent", () => {
