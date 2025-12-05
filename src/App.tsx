@@ -16,6 +16,11 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
+import {
   selectComponents,
   selectSelectedComponentId,
   useFormBuilderStore,
@@ -142,32 +147,51 @@ function App() {
     >
       <div className="h-screen flex flex-col">
         <Header />
-        <div className="flex-1 grid grid-cols-[280px_1fr_400px] overflow-hidden">
-          <ComponentLibrary />
-          <Canvas />
-          <div className="h-full overflow-hidden">
-            <Tabs defaultValue="properties" className="h-full flex flex-col">
-              <div className="px-4 pt-4">
-                <TabsList className="w-full grid grid-cols-2">
-                  <TabsTrigger value="properties" className="cursor-pointer">
-                    Properties
-                  </TabsTrigger>
-                  <TabsTrigger value="code" className="cursor-pointer">
-                    Code
-                  </TabsTrigger>
-                </TabsList>
+        <div className="flex-1 overflow-hidden">
+          <ResizablePanelGroup direction="horizontal">
+            <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
+              <ComponentLibrary />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={55} minSize={30}>
+              <Canvas />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={25} minSize={20} maxSize={50}>
+              <div className="h-full overflow-hidden">
+                <Tabs
+                  defaultValue="properties"
+                  className="h-full flex flex-col"
+                >
+                  <div className="px-4 pt-4">
+                    <TabsList className="w-full grid grid-cols-2">
+                      <TabsTrigger
+                        value="properties"
+                        className="cursor-pointer"
+                      >
+                        Properties
+                      </TabsTrigger>
+                      <TabsTrigger value="code" className="cursor-pointer">
+                        Code
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+                  <TabsContent
+                    value="properties"
+                    className="flex-1 m-0 overflow-hidden"
+                  >
+                    <PropertiesPanel />
+                  </TabsContent>
+                  <TabsContent
+                    value="code"
+                    className="flex-1 m-0 overflow-hidden"
+                  >
+                    <CodeDisplay />
+                  </TabsContent>
+                </Tabs>
               </div>
-              <TabsContent
-                value="properties"
-                className="flex-1 m-0 overflow-hidden"
-              >
-                <PropertiesPanel />
-              </TabsContent>
-              <TabsContent value="code" className="flex-1 m-0 overflow-hidden">
-                <CodeDisplay />
-              </TabsContent>
-            </Tabs>
-          </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </div>
         <Toaster closeButton />
 
