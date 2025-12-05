@@ -110,7 +110,9 @@ export function FormComponentRenderer({
             control={control}
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger className={error ? "border-destructive" : ""}>
+                <SelectTrigger
+                  className={`w-full ${error ? "border-destructive" : ""}`}
+                >
                   <SelectValue
                     placeholder={component.placeholder || "Select an option"}
                   />
@@ -370,7 +372,7 @@ function StaticComponentPreview({
       case "select":
         return (
           <Select disabled>
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue
                 placeholder={component.placeholder || "Select an option"}
               />
